@@ -1,0 +1,96 @@
+<!-- admin_panel/templates/index.html -->
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Firewall Admin Panel</title>
+</head>
+<body>
+    <h1>Firewall Admin Panel</h1>
+    
+    <h2>Devices</h2>
+    {% for connection, devices in devices.items() %}
+        <h3>Connection: {{ connection }}</h3>
+        <ul>
+            {% for device in devices %}
+                <li>{{ device.device }} - Type: {{ device.type }} - State: {{ device.state }}</li>
+            {% endfor %}
+        </ul>
+    {% endfor %}
+
+    <h2>Groups</h2>
+    <form action="/add_group" method="POST">
+        <input type="text" name="name" placeholder="Group Name">
+        <button type="submit">Add Group</button>
+    </form>
+    <form action="/edit_group" method="POST">
+        <input type="text" name="old_name" placeholder="Old Group Name">
+        <input type="text" name="new_name" placeholder="New Group Name">
+        <button type="submit">Edit Group</button>
+    </form>
+    <form action="/delete_group" method="POST">
+        <input type="text" name="name" placeholder="Group Name">
+        <button type="submit">Delete Group</button>
+    </form>
+    <ul>
+        {% for name, members in groups.items() %}
+            <li>{{ name }} ({{ members|length }} members)
+                <ul>
+                    {% for member in members %}
+                        <li>{{ member }}</li>
+                    {% endfor %}
+                </ul>
+            </li>
+        {% endfor %}
+    </ul>
+
+    <h2>Assign Device to Group</h2>
+    <form action="/assign_device" method="POST">
+        <input type="text" name="device" placeholder="Device Name">
+        <input type="text" name="group" placeholder="Group Name">
+        <button type="submit">Assign Device</button>
+    </form>
+
+    <h2>Rules</h2>
+    <form action="/add_rule" method="POST">
+        <input type="text" name="group" placeholder="Group Name">
+        <select name="rule">
+            <option value="BLOCK_IP">Block IP</option>
+            <option value="ALLOW_IP">Allow IP</option>
+            <option value="BLOCK_DOMAIN">Block Domain</option>
+            <option value="ALLOW_DOMAIN">Allow Domain</option>
+        </select>
+        <input type="text" name="value" placeholder="Value (e.g., IP or Domain)">
+        <button type="submit">Add Rule</button>
+    </form>
+    <ul>
+        {% for group, group_rules in rules.items() %}
+            <li>{{ group }}: 
+                <ul>
+                    {% for rule in group_rules %}
+                        <li>{{ rule }}</li>
+                    {% endfor %}
+                </ul>
+            </li>
+        {% endfor %}
+    </ul>
+
+    <h2>Modules</h2>
+    <form action="/manage_module" method="POST">
+        <select name="module">
+            {% for module_name, status in modules.items() %}
+                <option value="{{ module_name }}">{{ module_name }} ({{ 'Enabled' if status else 'Disabled' }})</option>
+            {% endfor %}
+        </select>
+        <select name="action">
+            <option value="enable">Enable</option>
+            <option value="disable">Disable</option>
+        </select>
+        <button type="submit">Update Module</button>
+    </form>
+    <ul>
+        {% for module_name, status in modules.items() %}
+            <li>{{ module_name }} - {{ 'Enabled' if status else 'Disabled' }}</li>
+        {% endfor %}
+    </ul>
+</body>
+</html>
