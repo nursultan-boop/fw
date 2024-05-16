@@ -45,10 +45,21 @@ def assign_device():
 def add_rule():
     rule = {
         'group': request.form['group'],
-        'rule': request.form['rule']
+        'rule_type': request.form['rule_type'],
+        'rule_value': request.form['rule_value']
     }
     requests.post(f'{API_URL}/rules', json=rule)
     return redirect(url_for('index'))
+
+@app.route('/delete_rule', methods=['POST'])
+def delete_rule():
+    rule = {
+        'group': request.form['group'],
+        'rule': request.form['rule']
+    }
+    requests.delete(f'{API_URL}/rules', json=rule)
+    return redirect(url_for('index'))
+
 
 @app.route('/manage_module', methods=['POST'])
 def manage_module():
