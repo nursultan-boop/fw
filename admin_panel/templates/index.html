@@ -1,170 +1,97 @@
+
 <!-- admin_panel/templates/index.html -->
 <!DOCTYPE html>
-<html> 
+<html>
 <head>
     <title>Firewall Admin Panel</title>
-    <style>
-        /* Add basic styling for better presentation */
-        body { font-family: sans-serif; }
-        h2 { margin-top: 20px; }
-        form { margin-bottom: 15px; }
-        ul { list-style-type: disc; margin-left: 30px; } 
-        .rule-item { display: flex; align-items: center; margin-bottom: 5px; }
-        .rule-item button { margin-left: 10px; }
-    </style>
 </head>
 <body>
     <h1>Firewall Admin Panel</h1>
-
+    
     <h2>Devices</h2>
-    <div id="devices-list">
-        </div>
+    {% for connection, devices in devices.items() %}
+        <h3>Connection: {{ connection }}</h3>
+        <ul>
+            {% for device in devices %}
+                <li>{{ device.device }} - Type: {{ device.type }} - State: {{ device.state }}</li>
+            {% endfor %}
+        </ul>
+    {% endfor %}
 
     <h2>Groups</h2>
     <form action="/add_group" method="POST">
-        <input type="text" name="name" placeholder="Group Name" required> 
+        <input type="text" name="name" placeholder="Group Name">
         <button type="submit">Add Group</button>
     </form>
     <form action="/edit_group" method="POST">
-        <input type="text" name="old_name" placeholder="Old Group Name" required>
-        <input type="text" name="new_name" placeholder="New Group Name" required>
+        <input type="text" name="old_name" placeholder="Old Group Name">
+        <input type="text" name="new_name" placeholder="New Group Name">
         <button type="submit">Edit Group</button>
     </form>
     <form action="/delete_group" method="POST">
-        <input type="text" name="name" placeholder="Group Name" required>
+        <input type="text" name="name" placeholder="Group Name">
         <button type="submit">Delete Group</button>
-    </form> 
-    <div id="groups-list">
-        </div>
+    </form>
+    <ul>
+        {% for name, members in groups.items() %}
+            <li>{{ name }} ({{ members|length }} members)
+                <ul>
+                    {% for member in members %}
+                        <li>{{ member }}</li>
+                    {% endfor %}
+                </ul>
+            </li>
+        {% endfor %}
+    </ul>
 
     <h2>Assign Device to Group</h2>
     <form action="/assign_device" method="POST">
-        <select name="device" required> 
-            {% for connection, devices in devices.items() %}
-                {% for device in devices %}
-                    <option value="{{ device.device }}">{{ device.device }} ({{ connection }})</option>
-                {% endfor %}
-            {% endfor %}
-        </select>
-        <select name="group" required>
-            {% for name, members in groups.items() %}
-                <option value="{{ name }}">{{ name }}</option>
-            {% endfor %}
-        </select>
+        <input type="text" name="device" placeholder="Device Name">
+        <input type="text" name="group" placeholder="Group Name">
         <button type="submit">Assign Device</button>
     </form>
 
     <h2>Rules</h2>
     <form action="/add_rule" method="POST">
-        <select name="group" required>
-            {% for name in groups.keys() %}
-                <option value="{{ name }}">{{ name }}</option>
-            {% endfor %}
-        </select>
-        <select name="rule_type" required> 
+        <input type="text" name="group" placeholder="Group Name">
+        <select name="rule">
             <option value="BLOCK_IP">Block IP</option>
             <option value="ALLOW_IP">Allow IP</option>
-            <option value="BLOCK_PORT">Block Port</option>
-            <option value="ALLOW_PORT">Allow Port</option>
-            <option value="BLOCK_DOMAIN">Block Domain</option> 
+            <option value="BLOCK_DOMAIN">Block Domain</option>
             <option value="ALLOW_DOMAIN">Allow Domain</option>
         </select>
-        <input type="text" name="rule_value" placeholder="IP, Port, or Domain" required> 
+        <input type="text" name="value" placeholder="Value (e.g., IP or Domain)">
         <button type="submit">Add Rule</button>
     </form>
-    <div id="rules-list">
-        </div>
+    <ul>
+        {% for group, group_rules in rules.items() %}
+            <li>{{ group }}: 
+                <ul>
+                    {% for rule in group_rules %}
+                        <li>{{ rule }}</li>
+                    {% endfor %}
+                </ul>
+            </li>
+        {% endfor %}
+    </ul>
 
     <h2>Modules</h2>
-    <div id="modules-list"> 
-        </div>
-
-    <script>
-        // Example: Use JavaScript to fetch data and dynamically update the UI
-        async function updateDevices() {
-            const response = await fetch('/devices');
-            const devices = await response.json();
-            const devicesList = document.getElementById('devices-list');
-            devicesList.innerHTML = ''; // Clear existing list
-
-            for (const connection in devices) {
-                let connectionHTML = `<h3>Connection: ${connection}</h3><ul>`;
-                devices[connection].forEach(device => {
-                    connectionHTML += `<li>${device.device} - Type: ${device.type} - State: ${device.state}</li>`;
-                });
-                connectionHTML += '</ul>';
-                devicesList.innerHTML += connectionHTML;
-            }
-        }
-
-        async function updateGroups() {
-            const response = await fetch('/groups');
-            const groups = await response.json();
-            const groupsList = document.getElementById('groups-list');
-            groupsList.innerHTML = '';
-
-            for (const groupName in groups) {
-                let groupHTML = `<li>${groupName} (${groups[groupName].length} members) <ul>`;
-                groups[groupName].forEach(member => {
-                    groupHTML += `<li>${member}</li>`;
-                });
-                groupHTML += `</ul></li>`;
-                groupsList.innerHTML += groupHTML;
-            }
-        }
-
-        async function updateRules() {
-            const response = await fetch('/rules');
-            const rules = await response.json();
-            const rulesList = document.getElementById('rules-list');
-            rulesList.innerHTML = '';
-
-            for (const groupName in rules) {
-                let ruleHTML = `<li>${groupName}: <ul>`;
-                rules[groupName].forEach(rule => {
-                    ruleHTML += `<li class="rule-item">${rule} 
-                                    <form action="/delete_rule" method="POST" style="display: inline;">
-                                        <input type="hidden" name="group" value="${groupName}">
-                                        <input type="hidden" name="rule" value="${rule}">
-                                        <button type="submit">Delete</button>
-                                    </form>
-                                </li>`;
-                });
-                ruleHTML += `</ul></li>`;
-                rulesList.innerHTML += ruleHTML;
-            }
-        }
-
-        async function updateModules() {
-            const response = await fetch('/modules');
-            const modules = await response.json();
-            const modulesList = document.getElementById('modules-list');
-            modulesList.innerHTML = ''; 
-
-            for (const moduleName in modules) {
-                let moduleHTML = `<li>${moduleName} - ${modules[moduleName] ? 'Enabled' : 'Disabled'}
-                                    <form action="/manage_module" method="POST" style="display: inline;">
-                                        <input type="hidden" name="module" value="${moduleName}">
-                                        <input type="hidden" name="action" value="${modules[moduleName] ? 'disable' : 'enable'}">
-                                        <button type="submit">${modules[moduleName] ? 'Disable' : 'Enable'}</button>
-                                    </form>
-                                </li>`;
-                modulesList.innerHTML += moduleHTML;
-            }
-        }
-
-        // Call updateDevices initially and periodically (e.g., every 5 seconds)
-        updateDevices();
-        setInterval(updateDevices, 5000); 
-
-        updateGroups();
-        setInterval(updateGroups, 5000);
-
-        updateRules();
-        setInterval(updateRules, 5000);
-
-        updateModules();
-        setInterval(updateModules, 5000);
-    </script>
+    <form action="/manage_module" method="POST">
+        <select name="module">
+            {% for module_name, status in modules.items() %}
+                <option value="{{ module_name }}">{{ module_name }} ({{ 'Enabled' if status else 'Disabled' }})</option>
+            {% endfor %}
+        </select>
+        <select name="action">
+            <option value="enable">Enable</option>
+            <option value="disable">Disable</option>
+        </select>
+        <button type="submit">Update Module</button>
+    </form>
+    <ul>
+        {% for module_name, status in modules.items() %}
+            <li>{{ module_name }} - {{ 'Enabled' if status else 'Disabled' }}</li>
+        {% endfor %}
+    </ul>
 </body>
 </html>
