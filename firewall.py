@@ -27,17 +27,15 @@ def get_network_devices():
     lines = result.stdout.decode().strip().split('\n')
 
     for line in lines:
-        if ':' not in line:
-            continue
-        device, dtype, state, connection, ip = line.split(':')
+        parts = line.split(':')
+        device, dtype, state, connection, ip = parts if len(parts) == 5 else (parts[0], parts[1], parts[2], parts[3], None)
         if connection not in devices:
             devices[connection] = []
         devices[connection].append({
-            'name': connection,
-            'device': device,
+            'name': device,
             'type': dtype,
             'state': state,
-            'ip': ip
+            'ip': ip,
         })
 
     return devices
@@ -76,26 +74,13 @@ def manage_groups():
 @app.route('/groups/assign', methods=['POST'])
 def assign_device_to_group():
     group_name = request.json['group']
-    device_name = request.json['device']
+    device = request.json['device']
     if group_name in groups:
-        if device_name not in groups[group_name]['devices']:
-            groups[group_name]['devices'].append(device_name)
+        if device not in groups[group_name]['devices']:
+            groups[group_name]['devices'].append(device)
             return jsonify({'status': 'Device assigned to group'}), 200
         else:
             return jsonify({'status': 'Device already in group'}), 400
-    else:
-        return jsonify({'status': 'Group not found'}), 404
-
-@app.route('/groups/remove_device', methods=['POST'])
-def remove_device_from_group():
-    group_name = request.json['group']
-    device_name = request.json['device']
-    if group_name in groups:
-        if device_name in groups[group_name]['devices']:
-            groups[group_name]['devices'].remove(device_name)
-            return jsonify({'status': 'Device removed from group'}), 200
-        else:
-            return jsonify({'status': 'Device not in group'}), 400
     else:
         return jsonify({'status': 'Group not found'}), 404
 
@@ -104,18 +89,17 @@ def manage_rules():
     if request.method == 'POST':
         group_name = request.json['group']
         rule = request.json['rule']
-        if group_name in groups:
-            groups[group_name]['rules'].append(rule)
-            update_firewall_rules()
-            return jsonify({'status': 'Rule added'}), 201
+        if group_name not in rules:
+            rules[group_name] = []
+        rules[group_name].append(rule)
+        return jsonify({'status': 'Rule added'}), 201
     elif request.method == 'DELETE':
         group_name = request.json['group']
         rule = request.json['rule']
-        if group_name in groups and rule in groups[group_name]['rules']:
-            groups[group_name]['rules'].remove(rule)
-            update_firewall_rules()
+        if group_name in rules and rule in rules[group_name]:
+            rules[group_name].remove(rule)
             return jsonify({'status': 'Rule removed'}), 200
-    return jsonify(groups)
+    return jsonify(rules)
 
 @app.route('/modules', methods=['GET', 'POST'])
 def manage_modules():
@@ -133,12 +117,6 @@ def manage_modules():
                 return jsonify({'status': 'Module disabled'}), 200
         return jsonify({'status': 'Module not found'}), 404
     return jsonify(active_modules)
-
-def update_firewall_rules():
-    # Placeholder function to update firewall rules
-    # Add actual iptables update logic here
-    print("Updating firewall rules based on current group configurations.")
-    # Example command: subprocess.run(['iptables', '-A', 'INPUT', '-s', '1.1.1.1', '-j', 'DROP'])
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
