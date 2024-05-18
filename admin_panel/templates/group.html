@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ group_name }}</title>
+</head>
+<body>
+    <h1>{{ group_name }}</h1>
+    <table>
+        <tr>
+            <th>Devices</th>
+            <th>Rules</th>
+        </tr>
+        {% for device in group.devices %}
+        <tr>
+            <td>
+                {{ device.name }} ({{ device.ip }})
+                <button onclick="removeDevice('{{ group_name }}', '{{ device.name }}')">Remove</button>
+            </td>
+            <td>
+                <ul>
+                    {% for rule in group.rules %}
+                    <li>
+                        {{ rule }}
+                        <button onclick="editRule('{{ group_name }}', '{{ device.name }}', '{{ rule }}')">Edit</button>
+                        <button onclick="removeRule('{{ group_name }}', '{{ device.name }}', '{{ rule }}')">Remove</button>
+                    </li>
+                    {% endfor %}
+                </ul>
+                <button onclick="addRule('{{ group_name }}', '{{ device.name }}')">Add Rule</button>
+            </td>
+        </tr>
+        {% endfor %}
+    </table>
+    <button onclick="addDevice('{{ group_name }}')">Add Device</button>
+
+    <script>
+        function addDevice(group) {
+            // Add device logic here
+        }
+
+        function removeDevice(group, device) {
+            if (confirm('Are you sure you want to remove this device from the group?')) {
+                // Remove device logic here
+            }
+        }
+
+        function addRule(group, device) {
+            // Add rule logic here
+        }
+
+        function removeRule(group, device, rule) {
+            if (confirm('Are you sure you want to remove this rule?')) {
+                // Remove rule logic here
+            }
+        }
+
+        function editRule(group, device, rule) {
+            // Edit rule logic here
+        }
+    </script>
+</body>
+</html>
