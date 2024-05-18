@@ -23,26 +23,37 @@ for filename in os.listdir(modules_dir):
 def get_network_devices():
     """Get network devices grouped by their connections."""
     devices.clear()
-    result = subprocess.run(['nmcli', '-t', '-f', 'DEVICE,TYPE,STATE,CONNECTION,IP4.ADDRESS', 'device'], stdout=subprocess.PIPE)
-    lines = result.stdout.decode().strip().split('\n')
+    try:
+        result = subprocess.run(['nmcli', '-t', '-f', 'DEVICE,TYPE,STATE,CONNECTION,IP4.ADDRESS', 'device'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        if result.returncode != 0:
+            print(f"nmcli error: {result.stderr.decode()}")
+            return devices
+        lines = result.stdout.decode().strip().split('\n')
+        print(f"nmcli output: {lines}")
 
-    for line in lines:
-        parts = line.split(':')
-        device, dtype, state, connection, ip = parts if len(parts) == 5 else (parts[0], parts[1], parts[2], parts[3], None)
-        if connection not in devices:
-            devices[connection] = []
-        devices[connection].append({
-            'name': device,
-            'type': dtype,
-            'state': state,
-            'ip': ip,
-        })
+        for line in lines:
+            parts = line.split(':')
+            if len(parts) < 4:
+                continue
+            device, dtype, state, connection = parts[:4]
+            ip = parts[4] if len(parts) == 5 else None
+            if connection not in devices:
+                devices[connection] = []
+            devices[connection].append({
+                'device': device,
+                'type': dtype,
+                'state': state,
+                'ip': ip,
+            })
 
+    except Exception as e:
+        print(f"Error getting network devices: {e}")
     return devices
 
 @app.route('/devices', methods=['GET'])
 def get_devices():
     devices = get_network_devices()
+    print(f"Devices: {devices}")  # Debug print
     return jsonify(devices)
 
 @app.route('/groups', methods=['GET', 'POST', 'PUT', 'DELETE'])

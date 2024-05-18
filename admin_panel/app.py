@@ -7,9 +7,18 @@ FIREWALL_API = 'http://localhost:5000'
 
 @app.route('/')
 def index():
-    devices = requests.get(f'{FIREWALL_API}/devices').json()
-    groups = requests.get(f'{FIREWALL_API}/groups').json()
-    modules = requests.get(f'{FIREWALL_API}/modules').json()
+    devices_response = requests.get(f'{FIREWALL_API}/devices')
+    print(f"Devices response: {devices_response.text}")
+    devices = devices_response.json()
+
+    groups_response = requests.get(f'{FIREWALL_API}/groups')
+    print(f"Groups response: {groups_response.text}")
+    groups = groups_response.json()
+
+    modules_response = requests.get(f'{FIREWALL_API}/modules')
+    print(f"Modules response: {modules_response.text}")
+    modules = modules_response.json()
+
     return render_template('index.html', devices=devices, groups=groups, modules=modules)
 
 @app.route('/group/<group_name>')
