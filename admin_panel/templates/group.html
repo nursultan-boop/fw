@@ -1,63 +1,53 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
     <title>{{ group_name }}</title>
 </head>
 <body>
-    <h1>{{ group_name }}</h1>
-    <table>
-        <tr>
-            <th>Devices</th>
-            <th>Rules</th>
-        </tr>
+    <h1>Group: {{ group_name }}</h1>
+    
+    <h2>Devices</h2>
+    <ul>
         {% for device in group.devices %}
-        <tr>
-            <td>
-                {{ device.name }} ({{ device.ip }})
-                <button onclick="removeDevice('{{ group_name }}', '{{ device.name }}')">Remove</button>
-            </td>
-            <td>
-                <ul>
-                    {% for rule in group.rules %}
-                    <li>
-                        {{ rule }}
-                        <button onclick="editRule('{{ group_name }}', '{{ device.name }}', '{{ rule }}')">Edit</button>
-                        <button onclick="removeRule('{{ group_name }}', '{{ device.name }}', '{{ rule }}')">Remove</button>
-                    </li>
-                    {% endfor %}
-                </ul>
-                <button onclick="addRule('{{ group_name }}', '{{ device.name }}')">Add Rule</button>
-            </td>
-        </tr>
+            <li>{{ device }}
+                <form action="{{ url_for('remove_device_from_group') }}" method="post" style="display:inline;">
+                    <input type="hidden" name="group_name" value="{{ group_name }}">
+                    <input type="hidden" name="device_name" value="{{ device }}">
+                    <button type="submit">Remove</button>
+                </form>
+            </li>
         {% endfor %}
-    </table>
-    <button onclick="addDevice('{{ group_name }}')">Add Device</button>
+    </ul>
+    <form action="{{ url_for('add_device_to_group') }}" method="post">
+        <select name="device_name">
+            {% for device in devices.values() %}
+                {% for d in device %}
+                    <option value="{{ d.name }}">{{ d.name }} ({{ d.ip }})</option>
+                {% endfor %}
+            {% endfor %}
+        </select>
+        <input type="hidden" name="group_name" value="{{ group_name }}">
+        <button type="submit">Add Device</button>
+    </form>
+    
+    <h2>Rules</h2>
+    <ul>
+        {% for rule in group.rules %}
+            <li>{{ rule }}
+                <form action="{{ url_for('remove_rule') }}" method="post" style="display:inline;">
+                    <input type="hidden" name="group_name" value="{{ group_name }}">
+                    <input type="hidden" name="rule" value="{{ rule }}">
+                    <button type="submit">Remove</button>
+                </form>
+            </li>
+        {% endfor %}
+    </ul>
+    <form action="{{ url_for('add_rule') }}" method="post">
+        <input type="text" name="rule" placeholder="New Rule">
+        <input type="hidden" name="group_name" value="{{ group_name }}">
+        <button type="submit">Add Rule</button>
+    </form>
 
-    <script>
-        function addDevice(group) {
-            // Add device logic here
-        }
-
-        function removeDevice(group, device) {
-            if (confirm('Are you sure you want to remove this device from the group?')) {
-                // Remove device logic here
-            }
-        }
-
-        function addRule(group, device) {
-            // Add rule logic here
-        }
-
-        function removeRule(group, device, rule) {
-            if (confirm('Are you sure you want to remove this rule?')) {
-                // Remove rule logic here
-            }
-        }
-
-        function editRule(group, device, rule) {
-            // Edit rule logic here
-        }
-    </script>
+    <a href="{{ url_for('index') }}">Back to Main Page</a>
 </body>
 </html>
