@@ -56,7 +56,77 @@ def group_page(group_name):
 def module_page(module_name):
     return render_template(f'module_{module_name}.html')
 
-# Add more routes and handlers for add, remove, edit, etc.
+@app.route('/add_group', methods=['GET', 'POST'])
+def add_group():
+    if request.method == 'POST':
+        group_name = request.form['group_name']
+        groups = load_data()
+        if group_name not in groups:
+            groups[group_name] = {"rules": [], "devices": []}
+            save_data(groups)
+        return redirect(url_for('index'))
+    return render_template('add_group.html')
+
+@app.route('/remove_group/<group_name>', methods=['POST'])
+def remove_group(group_name):
+    groups = load_data()
+    if group_name in groups and group_name != 'default':
+        del groups[group_name]
+        save_data(groups)
+    return redirect(url_for('index'))
+
+@app.route('/add_rule/<group_name>', methods=['POST'])
+def add_rule(group_name):
+    rule = request.form['rule']
+    groups = load_data()
+    if group_name in groups:
+        groups[group_name]['rules'].append(rule)
+        save_data(groups)
+    return redirect(url_for('group_page', group_name=group_name))
+
+@app.route('/remove_rule/<group_name>/<rule>', methods=['POST'])
+def remove_rule(group_name, rule):
+    groups = load_data()
+    if group_name in groups and rule in groups[group_name]['rules']:
+        groups[group_name]['rules'].remove(rule)
+        save_data(groups)
+    return redirect(url_for('group_page', group_name=group_name))
+
+@app.route('/add_device/<group_name>/<device_ip>', methods=['POST'])
+def add_device(group_name, device_ip):
+    groups = load_data()
+    if group_name in groups:
+        # Remove the device from any other group
+        for group in groups.values():
+            if device_ip in group['devices']:
+                group['devices'].remove(device_ip)
+        groups[group_name]['devices'].append(device_ip)
+        save_data(groups)
+    return redirect(url_for('group_page', group_name=group_name))
+
+@app.route('/remove_device/<group_name>/<device_ip>', methods=['POST'])
+def remove_device(group_name, device_ip):
+    groups = load_data()
+    if group_name in groups and device_ip in groups[group_name]['devices']:
+        groups[group_name]['devices'].remove(device_ip)
+        groups['default']['devices'].append(device_ip)
+        save_data(groups)
+    return redirect(url_for('group_page', group_name=group_name))
+
+@app.route('/toggle_module/<module_name>', methods=['POST'])
+def toggle_module(module_name):
+    # Example toggling logic (you need to implement the actual enabling/disabling logic)
+    try:
+        module = __import__(f"../modules/{module_name}")
+        if getattr(module, 'enabled', False):
+            module.disable_module()
+            module.enabled = False
+        else:
+            module.enable_module()
+            module.enabled = True
+        return jsonify(success=True)
+    except ImportError:
+        return jsonify(success=False, error="Module not found")
 
 if __name__ == '__main__':
     app.run(debug=True)
