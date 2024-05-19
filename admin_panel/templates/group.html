@@ -1,53 +1,84 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>{{ group_name }}</title>
-</head>
-<body>
-    <h1>Group: {{ group_name }}</h1>
-    
-    <h2>Devices</h2>
-    <ul>
-        {% for device in group.devices %}
-            <li>{{ device }}
-                <form action="{{ url_for('remove_device_from_group') }}" method="post" style="display:inline;">
-                    <input type="hidden" name="group_name" value="{{ group_name }}">
-                    <input type="hidden" name="device_name" value="{{ device }}">
-                    <button type="submit">Remove</button>
-                </form>
-            </li>
-        {% endfor %}
-    </ul>
-    <form action="{{ url_for('add_device_to_group') }}" method="post">
-        <select name="device_name">
-            {% for device in devices.values() %}
-                {% for d in device %}
-                    <option value="{{ d.name }}">{{ d.name }} ({{ d.ip }})</option>
-                {% endfor %}
-            {% endfor %}
-        </select>
-        <input type="hidden" name="group_name" value="{{ group_name }}">
-        <button type="submit">Add Device</button>
-    </form>
-    
-    <h2>Rules</h2>
-    <ul>
-        {% for rule in group.rules %}
-            <li>{{ rule }}
-                <form action="{{ url_for('remove_rule') }}" method="post" style="display:inline;">
-                    <input type="hidden" name="group_name" value="{{ group_name }}">
-                    <input type="hidden" name="rule" value="{{ rule }}">
-                    <button type="submit">Remove</button>
-                </form>
-            </li>
-        {% endfor %}
-    </ul>
-    <form action="{{ url_for('add_rule') }}" method="post">
-        <input type="text" name="rule" placeholder="New Rule">
-        <input type="hidden" name="group_name" value="{{ group_name }}">
-        <button type="submit">Add Rule</button>
-    </form>
+{% extends 'layout.html' %}
 
-    <a href="{{ url_for('index') }}">Back to Main Page</a>
-</body>
-</html>
+{% block content %}
+<h2>Group: {{ group_name }}</h2>
+
+<h3>Rules</h3>
+<ul>
+    {% for rule in group.rules %}
+    <li>
+        {{ rule }}
+        <button onclick="removeRule('{{ rule }}')">Remove</button>
+        <button onclick="editRule('{{ rule }}')">Edit</button>
+    </li>
+    {% endfor %}
+</ul>
+<button onclick="addRule()">Add Rule</button>
+
+<h3>Devices</h3>
+<ul>
+    {% for device in devices %}
+    <li>
+        <strong>Name:</strong> {{ device.name }}<br>
+        <strong>IP:</strong> {{ device.ip }}<br>
+        {% if device.ip in group.devices %}
+        <button onclick="removeDevice('{{ device.ip }}')">Remove from Group</button>
+        {% else %}
+        <button onclick="addDevice('{{ device.ip }}')">Add to Group</button>
+        {% endif %}
+    </li>
+    {% endfor %}
+</ul>
+
+<script>
+function removeRule(rule) {
+    if (confirm('Are you sure you want to remove this rule?')) {
+        fetch(`/remove_rule/${group_name}/${rule}`, {method: 'POST'})
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    location.reload();
+                } else {
+                    alert('Error removing rule');
+                }
+            });
+    }
+}
+
+function editRule(rule) {
+    // Implement rule editing logic here
+}
+
+function addRule() {
+    // Implement rule adding logic here
+}
+
+function removeDevice(ip) {
+    if (confirm('Are you sure you want to remove this device from the group?')) {
+        fetch(`/remove_device/${group_name}/${ip}`, {method: 'POST'})
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    location.reload();
+                } else {
+                    alert('Error removing device');
+                }
+            });
+    }
+}
+
+function addDevice(ip) {
+    if (confirm('Are you sure you want to add this device to the group?')) {
+        fetch(`/add_device/${group_name}/${ip}`, {method: 'POST'})
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    location.reload();
+                } else {
+                    alert('Error adding device');
+                }
+            });
+    }
+}
+</script>
+{% endblock %}

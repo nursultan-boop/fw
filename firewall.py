@@ -1,133 +1,106 @@
-import os
-import importlib
 import subprocess
-from flask import Flask, request, jsonify
+import json
+import os
 
-app = Flask(__name__)
+# Paths to data files
+DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
+GROUPS_FILE = os.path.join(DATA_DIR, 'groups.json')
 
-devices = {}
-groups = {}
-rules = {}
-modules = {}
-active_modules = {}
+def run_command(command):
+    """Run a shell command and return the output."""
+    result = subprocess.run(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    if result.returncode != 0:
+        print(f"Error running command: {command}\n{result.stderr.decode()}")
+    return result.stdout.decode()
 
-# Load modules
-modules_dir = './modules'
-for filename in os.listdir(modules_dir):
-    if filename.endswith('.py'):
-        module_name = filename[:-3]
-        module = importlib.import_module(f'modules.{module_name}')
-        modules[module_name] = module
-        active_modules[module_name] = False
+def load_data():
+    """Load groups from JSON file."""
+    if not os.path.exists(GROUPS_FILE):
+        with open(GROUPS_FILE, 'w') as f:
+            json.dump({"default": {"rules": [], "devices": []}}, f)
+    with open(GROUPS_FILE, 'r') as f:
+        groups = json.load(f)
+    return groups
 
-def get_network_devices():
-    """Get network devices grouped by their connections."""
-    devices.clear()
-    try:
-        result = subprocess.run(['nmcli', '-t', '-f', 'DEVICE,TYPE,STATE,CONNECTION,IP4.ADDRESS', 'device'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        if result.returncode != 0:
-            print(f"nmcli error: {result.stderr.decode()}")
-            return devices
-        lines = result.stdout.decode().strip().split('\n')
-        print(f"nmcli output: {lines}")
+def save_data(groups):
+    """Save groups to JSON file."""
+    with open(GROUPS_FILE, 'w') as f:
+        json.dump(groups, f)
 
-        for line in lines:
-            parts = line.split(':')
-            if len(parts) < 4:
-                continue
-            device, dtype, state, connection = parts[:4]
-            ip = parts[4] if len(parts) == 5 else None
-            if connection not in devices:
-                devices[connection] = []
-            devices[connection].append({
-                'device': device,
-                'type': dtype,
-                'state': state,
-                'ip': ip,
-            })
-
-    except Exception as e:
-        print(f"Error getting network devices: {e}")
+def scan_devices():
+    """Scan for connected devices using arp-scan."""
+    command = "sudo arp-scan --localnet"
+    output = run_command(command)
+    devices = []
+    for line in output.split('\n'):
+        if '192.168.' in line:  # Adjust this based on your local network range
+            parts = line.split()
+            if len(parts) >= 2:
+                ip = parts[0]
+                name = parts[1] if len(parts) > 2 else "Unknown"
+                devices.append({"name": name, "ip": ip})
     return devices
 
-@app.route('/devices', methods=['GET'])
-def get_devices():
-    devices = get_network_devices()
-    print(f"Devices: {devices}")  # Debug print
-    return jsonify(devices)
+def apply_rules():
+    """Apply firewall rules based on the current configuration."""
+    groups = load_data()
 
-@app.route('/groups', methods=['GET', 'POST', 'PUT', 'DELETE'])
-def manage_groups():
-    if request.method == 'POST':
-        group_name = request.json['name']
-        if group_name not in groups:
-            groups[group_name] = {'devices': [], 'rules': []}
-            return jsonify({'status': 'Group added'}), 201
-        else:
-            return jsonify({'status': 'Group already exists'}), 400
-    elif request.method == 'PUT':
-        old_name = request.json['old_name']
-        new_name = request.json['new_name']
-        if old_name in groups:
-            groups[new_name] = groups.pop(old_name)
-            return jsonify({'status': 'Group renamed'}), 200
-        else:
-            return jsonify({'status': 'Group not found'}), 404
-    elif request.method == 'DELETE':
-        group_name = request.json['name']
-        if group_name in groups:
-            del groups[group_name]
-            return jsonify({'status': 'Group deleted'}), 200
-        else:
-            return jsonify({'status': 'Group not found'}), 404
-    return jsonify(groups)
+    # Clear existing rules
+    run_command('iptables -F')
 
-@app.route('/groups/assign', methods=['POST'])
-def assign_device_to_group():
-    group_name = request.json['group']
-    device = request.json['device']
-    if group_name in groups:
-        if device not in groups[group_name]['devices']:
-            groups[group_name]['devices'].append(device)
-            return jsonify({'status': 'Device assigned to group'}), 200
-        else:
-            return jsonify({'status': 'Device already in group'}), 400
-    else:
-        return jsonify({'status': 'Group not found'}), 404
+    # Apply default group rules
+    default_group = groups.get('default', {})
+    apply_group_rules(default_group.get('rules', []))
 
-@app.route('/rules', methods=['GET', 'POST', 'DELETE'])
-def manage_rules():
-    if request.method == 'POST':
-        group_name = request.json['group']
-        rule = request.json['rule']
-        if group_name not in rules:
-            rules[group_name] = []
-        rules[group_name].append(rule)
-        return jsonify({'status': 'Rule added'}), 201
-    elif request.method == 'DELETE':
-        group_name = request.json['group']
-        rule = request.json['rule']
-        if group_name in rules and rule in rules[group_name]:
-            rules[group_name].remove(rule)
-            return jsonify({'status': 'Rule removed'}), 200
-    return jsonify(rules)
+    # Apply group-specific rules
+    for group_name, group_data in groups.items():
+        if group_name != 'default':
+            apply_group_rules(group_data.get('rules', []))
+            for device_ip in group_data.get('devices', []):
+                apply_device_rules(device_ip, group_data.get('rules', []))
 
-@app.route('/modules', methods=['GET', 'POST'])
-def manage_modules():
-    if request.method == 'POST':
-        module_name = request.json['module']
-        action = request.json['action']
-        if module_name in modules:
-            if action == 'enable':
-                active_modules[module_name] = True
-                modules[module_name].enable()
-                return jsonify({'status': 'Module enabled'}), 200
-            elif action == 'disable':
-                active_modules[module_name] = False
-                modules[module_name].disable()
-                return jsonify({'status': 'Module disabled'}), 200
-        return jsonify({'status': 'Module not found'}), 404
-    return jsonify(active_modules)
+def apply_group_rules(rules):
+    """Apply rules for a specific group."""
+    for rule in rules:
+        run_command(f'iptables {rule}')
+
+def apply_device_rules(device_ip, rules):
+    """Apply rules for a specific device."""
+    for rule in rules:
+        run_command(f'iptables -A INPUT -s {device_ip} {rule}')
+
+def add_rule_to_group(group_name, rule):
+    """Add a rule to a specific group."""
+    groups = load_data()
+    groups[group_name]['rules'].append(rule)
+    save_data(groups)
+    apply_rules()
+
+def remove_rule_from_group(group_name, rule):
+    """Remove a rule from a specific group."""
+    groups = load_data()
+    groups[group_name]['rules'].remove(rule)
+    save_data(groups)
+    apply_rules()
+
+def add_device_to_group(device_ip, group_name):
+    """Add a device to a specific group."""
+    groups = load_data()
+    for group in groups.values():
+        if device_ip in group['devices']:
+            group['devices'].remove(device_ip)
+    groups[group_name]['devices'].append(device_ip)
+    save_data(groups)
+    apply_rules()
+
+def remove_device_from_group(device_ip, group_name):
+    """Remove a device from a specific group."""
+    groups = load_data()
+    groups[group_name]['devices'].remove(device_ip)
+    groups['default']['devices'].append(device_ip)
+    save_data(groups)
+    apply_rules()
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000)
+    # Initial application of rules when the script is run
+    apply_rules()

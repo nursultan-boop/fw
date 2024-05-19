@@ -1,41 +1,48 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Firewall Admin Panel</title>
-</head>
-<body>
-    <h1>Connected Devices</h1>
-    <ul>
-        {% for device in devices.values() %}
-            {% for d in device %}
-                <li>Name: {{ d.name }} - IP: {{ d.ip }}</li>
-            {% endfor %}
-        {% endfor %}
-    </ul>
+{% extends 'layout.html' %}
 
-    <h1>Groups</h1>
-    <ul>
-        {% for group_name in groups %}
-            <li><a href="{{ url_for('group', group_name=group_name) }}">{{ group_name }}</a></li>
-        {% endfor %}
-    </ul>
-    <form action="{{ url_for('add_group') }}" method="post">
-        <input type="text" name="group_name" placeholder="New Group Name">
-        <button type="submit">Add Group</button>
-    </form>
+{% block content %}
+<h2>Connected Devices</h2>
+<ul>
+    {% for device in devices %}
+    <li>
+        <strong>Name:</strong> {{ device.name }}<br>
+        <strong>IP:</strong> {{ device.ip }}
+    </li>
+    {% endfor %}
+</ul>
 
-    <h1>Modules</h1>
-    <ul>
-        {% for module, status in modules.items() %}
-            <li>
-                {{ module }} - {{ 'Enabled' if status else 'Disabled' }}
-                <form action="{{ url_for('toggle_module') }}" method="post" style="display:inline;">
-                    <input type="hidden" name="module_name" value="{{ module }}">
-                    <input type="hidden" name="action" value="{{ 'disable' if status else 'enable' }}">
-                    <button type="submit">{{ 'Disable' if status else 'Enable' }}</button>
-                </form>
-            </li>
-        {% endfor %}
-    </ul>
-</body>
-</html>
+<h2 id="groups">Groups</h2>
+<ul>
+    {% for group_name in groups %}
+    <li><a href="{{ url_for('group_page', group_name=group_name) }}">{{ group_name }}</a></li>
+    {% endfor %}
+</ul>
+<button onclick="location.href='{{ url_for('add_group') }}'">Add New Group</button>
+
+<h2 id="modules">Modules</h2>
+<ul>
+    {% for module in ['example_module'] %}
+    <li>
+        {{ module }}
+        <button onclick="location.href='{{ url_for('module_page', module_name=module) }}'">Manage</button>
+        <button onclick="toggleModule('{{ module }}')">Toggle On/Off</button>
+    </li>
+    {% endfor %}
+</ul>
+
+<script>
+function toggleModule(module) {
+    if (confirm('Are you sure you want to toggle this module?')) {
+        fetch(`/toggle_module/${module}`, {method: 'POST'})
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Module toggled successfully');
+                } else {
+                    alert('Error toggling module');
+                }
+            });
+    }
+}
+</script>
+{% endblock %}

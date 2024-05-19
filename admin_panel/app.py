@@ -1,92 +1,62 @@
-from flask import Flask, render_template, request, redirect, url_for
-import requests
+from flask import Flask, render_template, request, redirect, url_for, jsonify
+import json
+import os
+import subprocess
 
 app = Flask(__name__)
 
-FIREWALL_API = 'http://localhost:5000'
+# Load data
+DATA_DIR = os.path.join(os.path.dirname(__file__), '../data')
+GROUPS_FILE = os.path.join(DATA_DIR, 'groups.json')
+
+if not os.path.exists(DATA_DIR):
+    os.makedirs(DATA_DIR)
+
+def load_data():
+    if not os.path.exists(GROUPS_FILE):
+        with open(GROUPS_FILE, 'w') as f:
+            json.dump({"default": {"rules": [], "devices": []}}, f)
+    with open(GROUPS_FILE, 'r') as f:
+        groups = json.load(f)
+    return groups
+
+def save_data(groups):
+    with open(GROUPS_FILE, 'w') as f:
+        json.dump(groups, f)
+
+def scan_devices():
+    """Scan for connected devices using arp-scan."""
+    command = "sudo arp-scan --localnet"
+    result = subprocess.run(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    output = result.stdout.decode()
+    devices = []
+    for line in output.split('\n'):
+        if '192.168.' in line:  # Adjust this based on your local network range
+            parts = line.split()
+            if len(parts) >= 2:
+                ip = parts[0]
+                name = parts[1] if len(parts) > 2 else "Unknown"
+                devices.append({"name": name, "ip": ip})
+    return devices
 
 @app.route('/')
 def index():
-    devices_response = requests.get(f'{FIREWALL_API}/devices')
-    print(f"Devices response: {devices_response.text}")
-    devices = devices_response.json()
-
-    groups_response = requests.get(f'{FIREWALL_API}/groups')
-    print(f"Groups response: {groups_response.text}")
-    groups = groups_response.json()
-
-    modules_response = requests.get(f'{FIREWALL_API}/modules')
-    print(f"Modules response: {modules_response.text}")
-    modules = modules_response.json()
-
-    return render_template('index.html', devices=devices, groups=groups, modules=modules)
+    devices = scan_devices()
+    groups = load_data()
+    return render_template('index.html', devices=devices, groups=groups)
 
 @app.route('/group/<group_name>')
-def group(group_name):
-    groups = requests.get(f'{FIREWALL_API}/groups').json()
-    devices = requests.get(f'{FIREWALL_API}/devices').json()
-    if group_name in groups:
-        return render_template('group.html', group_name=group_name, group=groups[group_name], devices=devices)
-    return redirect(url_for('index'))
+def group_page(group_name):
+    groups = load_data()
+    group = groups.get(group_name, {"rules": [], "devices": []})
+    devices = scan_devices()
+    return render_template('group.html', group_name=group_name, group=group, devices=devices)
 
-@app.route('/add_group', methods=['POST'])
-def add_group():
-    group_name = request.form.get('group_name')
-    if group_name:
-        response = requests.post(f'{FIREWALL_API}/groups', json={'name': group_name})
-        if response.status_code == 201:
-            return redirect(url_for('index'))
-    return redirect(url_for('index'))
+@app.route('/module/<module_name>')
+def module_page(module_name):
+    return render_template(f'module_{module_name}.html')
 
-@app.route('/add_device_to_group', methods=['POST'])
-def add_device_to_group():
-    group_name = request.form.get('group_name')
-    device_name = request.form.get('device_name')
-    if group_name and device_name:
-        response = requests.post(f'{FIREWALL_API}/groups/assign', json={'group': group_name, 'device': device_name})
-        if response.status_code == 200:
-            return redirect(url_for('group', group_name=group_name))
-    return redirect(url_for('index'))
-
-@app.route('/remove_device_from_group', methods=['POST'])
-def remove_device_from_group():
-    group_name = request.form.get('group_name')
-    device_name = request.form.get('device_name')
-    if group_name and device_name:
-        response = requests.post(f'{FIREWALL_API}/groups/remove_device', json={'group': group_name, 'device': device_name})
-        if response.status_code == 200:
-            return redirect(url_for('group', group_name=group_name))
-    return redirect(url_for('index'))
-
-@app.route('/add_rule', methods=['POST'])
-def add_rule():
-    group_name = request.form.get('group_name')
-    rule = request.form.get('rule')
-    if group_name and rule:
-        response = requests.post(f'{FIREWALL_API}/rules', json={'group': group_name, 'rule': rule})
-        if response.status_code == 201:
-            return redirect(url_for('group', group_name=group_name))
-    return redirect(url_for('index'))
-
-@app.route('/remove_rule', methods=['POST'])
-def remove_rule():
-    group_name = request.form.get('group_name')
-    rule = request.form.get('rule')
-    if group_name and rule:
-        response = requests.delete(f'{FIREWALL_API}/rules', json={'group': group_name, 'rule': rule})
-        if response.status_code == 200:
-            return redirect(url_for('group', group_name=group_name))
-    return redirect(url_for('index'))
-
-@app.route('/toggle_module', methods=['POST'])
-def toggle_module():
-    module_name = request.form.get('module_name')
-    action = request.form.get('action')
-    if module_name and action:
-        response = requests.post(f'{FIREWALL_API}/modules', json={'module': module_name, 'action': action})
-        if response.status_code == 200:
-            return redirect(url_for('index'))
-    return redirect(url_for('index'))
+# Add more routes and handlers for add, remove, edit, etc.
 
 if __name__ == '__main__':
-    app.run(port=5001, debug=True)
+    app.run(debug=True)
