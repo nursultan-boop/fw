@@ -26,7 +26,7 @@ def save_data(groups):
 
 def scan_devices():
     """Scan for connected devices using nmcli."""
-    command = "nmcli -t -f name,IP4.ADDRESS device | grep -E \"connected|inet4\""
+    command = "nmcli -t -f name,IP4.ADDRESS device | grep -E 'connected|inet4'"
     result = subprocess.run(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     output = result.stdout.decode()
     devices = []
