@@ -1,9 +1,9 @@
 {% extends 'layout.html' %}
 
 {% block content %}
-<h2>Add Group</h2>
+<h2>Add New Group</h2>
 <form action="{{ url_for('add_group') }}" method="post">
-    <input type="text" name="group_name" placeholder="Enter group name">
+    <input type="text" name="group_name" placeholder="Group Name" required>
     <button type="submit">Add Group</button>
 </form>
 {% endblock %}

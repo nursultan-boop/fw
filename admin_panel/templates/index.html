@@ -5,7 +5,12 @@
 <ul>
     {% for device in devices %}
     <li>
-        <strong>Name:</strong> {{ device.name }}<br>
+        <form action="{{ url_for('rename_device') }}" method="post" style="display:inline;">
+            <strong>Name:</strong> <input type="text" name="new_name" value="{{ device.name }}">
+            <input type="hidden" name="device_ip" value="{{ device.ip }}">
+            <button type="submit">Rename</button>
+        </form>
+        <br>
         <strong>IP:</strong> {{ device.ip }}
     </li>
     {% endfor %}
@@ -14,35 +19,43 @@
 <h2 id="groups">Groups</h2>
 <ul>
     {% for group_name in groups %}
-    <li><a href="{{ url_for('group_page', group_name=group_name) }}">{{ group_name }}</a></li>
+    <li>
+        <a href="{{ url_for('group_page', group_name=group_name) }}">{{ group_name }}</a>
+        {% if group_name != 'default' %}
+        <form action="{{ url_for('remove_group', group_name=group_name) }}" method="post" style="display:inline;">
+            <button type="submit" onclick="return confirm('Are you sure you want to remove this group? Devices will be moved to the default group.')">Remove</button>
+        </form>
+        {% endif %}
+    </li>
     {% endfor %}
 </ul>
 <button onclick="location.href='{{ url_for('add_group') }}'">Add New Group</button>
 
 <h2 id="modules">Modules</h2>
 <ul>
-    {% for module in ['example_module'] %}
+    {% for module_name, module_status in modules.items() %}
     <li>
-        {{ module }}
-        <button onclick="location.href='{{ url_for('module_page', module_name=module) }}'">Manage</button>
-        <button onclick="toggleModule('{{ module }}')">Toggle On/Off</button>
+        {{ module_name }}
+        <button onclick="location.href='{{ url_for('module_page', module_name=module_name) }}'">Manage</button>
+        <button onclick="toggleModule('{{ module_name }}')">
+            {{ 'Turn Off' if module_status else 'Turn On' }}
+        </button>
     </li>
     {% endfor %}
 </ul>
 
 <script>
 function toggleModule(module) {
-    if (confirm('Are you sure you want to toggle this module?')) {
-        fetch(`/toggle_module/${module}`, {method: 'POST'})
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    alert('Module toggled successfully');
-                } else {
-                    alert('Error toggling module');
-                }
-            });
-    }
+    fetch('/toggle_module/' + module, {
+        method: 'POST'
+    }).then(response => response.json()).then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert('Failed to toggle module: ' + data.error);
+        }
+    });
 }
 </script>
+
 {% endblock %}

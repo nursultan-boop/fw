@@ -15,7 +15,12 @@
     {% endfor %}
 </ul>
 <form action="{{ url_for('add_rule', group_name=group_name) }}" method="post">
-    <input type="text" name="rule" placeholder="New Rule">
+    <label for="rule_type">Rule Type:</label>
+    <select name="rule_type">
+        <option value="Block IP">Block IP</option>
+        <option value="Block Domain">Block Domain</option>
+    </select>
+    <input type="text" name="value" placeholder="IP or Domain">
     <button type="submit">Add Rule</button>
 </form>
 
@@ -23,7 +28,7 @@
 <ul>
     {% for device_ip in group.devices %}
     <li>
-        {{ device_ip }}
+        {{ devices[device_ip] if device_ip in devices else device_ip }}
         <form action="{{ url_for('remove_device', group_name=group_name, device_ip=device_ip) }}" method="post" style="display:inline;">
             <button type="submit">Remove from Group</button>
         </form>
