@@ -32,6 +32,8 @@ def scan_devices():
     devices = []
     for line in output.split('\n'):
         if line:
+            device=''
+            ip=''
             if "enp" in line:
                 device = line
             elif "inet4" in line:
