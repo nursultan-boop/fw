@@ -14,16 +14,28 @@
     {% endfor %}
 </ul>
 <form action="{{ url_for('add_rule', group_name=group_name) }}" method="post">
+<<<<<<< HEAD
     <input type="text" name="rule" placeholder="New rule" required>
+=======
+    <input type="text" name="rule" placeholder="New Rule">
+>>>>>>> parent of de90128 (Refactor group page template and add rule type selection)
     <button type="submit">Add Rule</button>
 </form>
 
 <h3>Devices in this Group</h3>
 <ul>
+<<<<<<< HEAD
     {% for device in group.devices %}
     <li>{{ device }}
         <form action="{{ url_for('remove_device', group_name=group_name, device_ip=device) }}" method="post" style="display:inline;">
             <button type="submit">Remove</button>
+=======
+    {% for device_ip in group.devices %}
+    <li>
+        {{ device_ip }}
+        <form action="{{ url_for('remove_device', group_name=group_name, device_ip=device_ip) }}" method="post" style="display:inline;">
+            <button type="submit">Remove from Group</button>
+>>>>>>> parent of de90128 (Refactor group page template and add rule type selection)
         </form>
     </li>
     {% endfor %}
