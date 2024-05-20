@@ -38,8 +38,8 @@ def scan_devices():
         line = line.strip()  # Remove leading/trailing whitespace
 
         if line:
-            if line.endswith(':'):  # Device name line (ends with ':')
-                current_device = line[:-1]  # Store device name (remove the ':')
+            if ':' in line:  # Device name line (ends with ':')
+                current_device = line.split(':')[0] # Store device name (remove the ':')
                 print(current_device, flush=True)
             elif line.startswith('inet4'):  # IP address line
                 ip_address = line.split(' ')[1]
