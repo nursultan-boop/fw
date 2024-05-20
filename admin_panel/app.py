@@ -5,11 +5,7 @@ from flask import Flask, render_template, request, redirect, url_for, jsonify
 
 app = Flask(__name__)
 
-<<<<<<< HEAD
 # Directory and file paths
-=======
-# Load data
->>>>>>> parent of 78ec312 (lets' gooo)
 DATA_DIR = os.path.join(os.path.dirname(__file__), '../data')
 GROUPS_FILE = os.path.join(DATA_DIR, 'groups.json')
 
@@ -29,32 +25,18 @@ def save_data(groups):
         json.dump(groups, f)
 
 def scan_devices():
-<<<<<<< HEAD
     """Scan for connected devices using nmcli."""
     command = "nmcli -t -f DEVICE,IP4.ADDRESS device show"
-=======
-    """Scan for connected devices using arp-scan."""
-    command = "sudo arp-scan --localnet"
->>>>>>> parent of 78ec312 (lets' gooo)
     result = subprocess.run(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     output = result.stdout.decode()
     devices = []
     for line in output.split('\n'):
-<<<<<<< HEAD
         if line:
             parts = line.split(':')
             if len(parts) == 2 and parts[1]:
                 device = parts[0]
                 ip = parts[1].split('/')[0]
                 devices.append({"name": device, "ip": ip})
-=======
-        if '192.168.' in line:  # Adjust this based on your local network range
-            parts = line.split()
-            if len(parts) >= 2:
-                ip = parts[0]
-                name = parts[1] if len(parts) > 2 else "Unknown"
-                devices.append({"name": name, "ip": ip})
->>>>>>> parent of 78ec312 (lets' gooo)
     return devices
 
 @app.route('/')
@@ -172,3 +154,4 @@ def toggle_module(module_name):
 
 if __name__ == '__main__':
     app.run(debug=True)
+    #just for the commit
