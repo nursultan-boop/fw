@@ -1,11 +1,11 @@
 import json
 import os
+import subprocess
 from flask import Flask, render_template, request, redirect, url_for, jsonify
-from firewall import scan_devices  # Import the scan_devices function from firewall.py
 
 app = Flask(__name__)
 
-# Load data
+# Directory and file paths
 DATA_DIR = os.path.join(os.path.dirname(__file__), '../data')
 GROUPS_FILE = os.path.join(DATA_DIR, 'groups.json')
 
@@ -23,6 +23,21 @@ def load_data():
 def save_data(groups):
     with open(GROUPS_FILE, 'w') as f:
         json.dump(groups, f)
+
+def scan_devices():
+    """Scan for connected devices using nmcli."""
+    command = "nmcli -t -f DEVICE,IP4.ADDRESS device show"
+    result = subprocess.run(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    output = result.stdout.decode()
+    devices = []
+    for line in output.split('\n'):
+        if line:
+            parts = line.split(':')
+            if len(parts) == 2 and parts[1]:
+                device = parts[0]
+                ip = parts[1].split('/')[0]
+                devices.append({"name": device, "ip": ip})
+    return devices
 
 @app.route('/')
 def index():
@@ -109,8 +124,8 @@ def rename_device():
     
     for group in groups.values():
         for device in group['devices']:
-            if device['ip'] == device_ip:
-                device['name'] = new_name
+            if device == device_ip:
+                device = {"name": new_name, "ip": device_ip}
                 device_found = True
 
     for device in devices:
