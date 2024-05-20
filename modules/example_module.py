@@ -1,11 +1,5 @@
-enabled = False
-
 def enable_module():
-    global enabled
-    enabled = True
-    # Add your enabling logic here
+    print("Enabling example module")
 
 def disable_module():
-    global enabled
-    enabled = False
-    # Add your disabling logic here
+    print("Disabling example module")

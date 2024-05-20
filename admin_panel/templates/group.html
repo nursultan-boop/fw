@@ -6,6 +6,7 @@
 <h3>Rules</h3>
 <ul>
     {% for rule in group.rules %}
+<<<<<<< HEAD
     <li>{{ rule }} 
         <form action="{{ url_for('remove_rule', group_name=group_name, rule=rule) }}" method="post" style="display:inline;">
             <button type="submit">Remove</button>
@@ -21,9 +22,20 @@
 >>>>>>> parent of de90128 (Refactor group page template and add rule type selection)
     <button type="submit">Add Rule</button>
 </form>
+=======
+    <li>
+        {{ rule }}
+        <button onclick="removeRule('{{ rule }}')">Remove</button>
+        <button onclick="editRule('{{ rule }}')">Edit</button>
+    </li>
+    {% endfor %}
+</ul>
+<button onclick="addRule()">Add Rule</button>
+>>>>>>> parent of 78ec312 (lets' gooo)
 
 <h3>Devices in this Group</h3>
 <ul>
+<<<<<<< HEAD
 <<<<<<< HEAD
     {% for device in group.devices %}
     <li>{{ device }}
@@ -48,4 +60,70 @@
     </select>
     <button type="submit">Add Device</button>
 </form>
+=======
+    {% for device in devices %}
+    <li>
+        <strong>Name:</strong> {{ device.name }}<br>
+        <strong>IP:</strong> {{ device.ip }}<br>
+        {% if device.ip in group.devices %}
+        <button onclick="removeDevice('{{ device.ip }}')">Remove from Group</button>
+        {% else %}
+        <button onclick="addDevice('{{ device.ip }}')">Add to Group</button>
+        {% endif %}
+    </li>
+    {% endfor %}
+</ul>
+
+<script>
+function removeRule(rule) {
+    if (confirm('Are you sure you want to remove this rule?')) {
+        fetch(`/remove_rule/${group_name}/${rule}`, {method: 'POST'})
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    location.reload();
+                } else {
+                    alert('Error removing rule');
+                }
+            });
+    }
+}
+
+function editRule(rule) {
+    // Implement rule editing logic here
+}
+
+function addRule() {
+    // Implement rule adding logic here
+}
+
+function removeDevice(ip) {
+    if (confirm('Are you sure you want to remove this device from the group?')) {
+        fetch(`/remove_device/${group_name}/${ip}`, {method: 'POST'})
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    location.reload();
+                } else {
+                    alert('Error removing device');
+                }
+            });
+    }
+}
+
+function addDevice(ip) {
+    if (confirm('Are you sure you want to add this device to the group?')) {
+        fetch(`/add_device/${group_name}/${ip}`, {method: 'POST'})
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    location.reload();
+                } else {
+                    alert('Error adding device');
+                }
+            });
+    }
+}
+</script>
+>>>>>>> parent of 78ec312 (lets' gooo)
 {% endblock %}
