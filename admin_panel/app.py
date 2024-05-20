@@ -1,10 +1,11 @@
-from flask import Flask, render_template, request, redirect, url_for, jsonify
 import json
 import os
-import subprocess
+from flask import Flask, render_template, request, redirect, url_for, jsonify
+from firewall import scan_devices  # Import the scan_devices function from firewall.py
 
 app = Flask(__name__)
 
+# Load data
 DATA_DIR = os.path.join(os.path.dirname(__file__), '../data')
 GROUPS_FILE = os.path.join(DATA_DIR, 'groups.json')
 
@@ -23,20 +24,6 @@ def save_data(groups):
     with open(GROUPS_FILE, 'w') as f:
         json.dump(groups, f)
 
-def scan_devices():
-    """Scan for connected devices using arp."""
-    command = "arp -a"
-    result = subprocess.run(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    output = result.stdout.decode()
-    devices = []
-    for line in output.split('\n'):
-        if '(' in line and ')' in line:
-            parts = line.split()
-            ip = parts[1].strip('()')
-            name = parts[0] if parts[0] != '?' else 'Unknown'
-            devices.append({"name": name, "ip": ip})
-    return devices
-
 @app.route('/')
 def index():
     devices = scan_devices()
@@ -52,7 +39,7 @@ def group_page(group_name):
 
 @app.route('/module/<module_name>')
 def module_page(module_name):
-    return render_template(f'{module_name}.html')
+    return render_template(f'module_{module_name}.html')
 
 @app.route('/add_group', methods=['GET', 'POST'])
 def add_group():
@@ -69,11 +56,6 @@ def add_group():
 def remove_group(group_name):
     groups = load_data()
     if group_name in groups and group_name != 'default':
-        # Move devices to default group before deletion
-        default_group = groups['default']['devices']
-        for device in groups[group_name]['devices']:
-            if device not in default_group:
-                default_group.append(device)
         del groups[group_name]
         save_data(groups)
     return redirect(url_for('index'))
@@ -108,7 +90,6 @@ def add_device(group_name):
         save_data(groups)
     return redirect(url_for('group_page', group_name=group_name))
 
-
 @app.route('/remove_device/<group_name>/<device_ip>', methods=['POST'])
 def remove_device(group_name, device_ip):
     groups = load_data()
@@ -118,10 +99,43 @@ def remove_device(group_name, device_ip):
         save_data(groups)
     return redirect(url_for('group_page', group_name=group_name))
 
+@app.route('/rename_device', methods=['POST'])
+def rename_device():
+    device_ip = request.form['device_ip']
+    new_name = request.form['new_name']
+    groups = load_data()
+    devices = scan_devices()
+    device_found = False
+    
+    for group in groups.values():
+        for device in group['devices']:
+            if device['ip'] == device_ip:
+                device['name'] = new_name
+                device_found = True
+
+    for device in devices:
+        if device['ip'] == device_ip:
+            device['name'] = new_name
+            device_found = True
+
+    if device_found:
+        save_data(groups)
+    return redirect(url_for('index'))
+
 @app.route('/toggle_module/<module_name>', methods=['POST'])
 def toggle_module(module_name):
-    result = toggle_module(module_name)
-    return jsonify(result)
+    # Example toggling logic (you need to implement the actual enabling/disabling logic)
+    try:
+        module = __import__(f"../modules/{module_name}")
+        if getattr(module, 'enabled', False):
+            module.disable_module()
+            module.enabled = False
+        else:
+            module.enable_module()
+            module.enabled = True
+        return jsonify(success=True)
+    except ImportError:
+        return jsonify(success=False, error="Module not found")
 
 if __name__ == '__main__':
     app.run(debug=True)
