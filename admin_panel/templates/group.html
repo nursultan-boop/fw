@@ -6,7 +6,7 @@
 <h3>Rules</h3>
 <ul>
     {% for rule in group.rules %}
-<<<<<<< HEAD
+
     <li>{{ rule }} 
         <form action="{{ url_for('remove_rule', group_name=group_name, rule=rule) }}" method="post" style="display:inline;">
             <button type="submit">Remove</button>
@@ -15,14 +15,10 @@
     {% endfor %}
 </ul>
 <form action="{{ url_for('add_rule', group_name=group_name) }}" method="post">
-<<<<<<< HEAD
     <input type="text" name="rule" placeholder="New rule" required>
-=======
-    <input type="text" name="rule" placeholder="New Rule">
->>>>>>> parent of de90128 (Refactor group page template and add rule type selection)
     <button type="submit">Add Rule</button>
 </form>
-=======
+
     <li>
         {{ rule }}
         <button onclick="removeRule('{{ rule }}')">Remove</button>
@@ -35,19 +31,11 @@
 
 <h3>Devices in this Group</h3>
 <ul>
-<<<<<<< HEAD
-<<<<<<< HEAD
+
     {% for device in group.devices %}
     <li>{{ device }}
         <form action="{{ url_for('remove_device', group_name=group_name, device_ip=device) }}" method="post" style="display:inline;">
             <button type="submit">Remove</button>
-=======
-    {% for device_ip in group.devices %}
-    <li>
-        {{ device_ip }}
-        <form action="{{ url_for('remove_device', group_name=group_name, device_ip=device_ip) }}" method="post" style="display:inline;">
-            <button type="submit">Remove from Group</button>
->>>>>>> parent of de90128 (Refactor group page template and add rule type selection)
         </form>
     </li>
     {% endfor %}
@@ -60,7 +48,7 @@
     </select>
     <button type="submit">Add Device</button>
 </form>
-=======
+
     {% for device in devices %}
     <li>
         <strong>Name:</strong> {{ device.name }}<br>
@@ -124,6 +112,7 @@ function addDevice(ip) {
             });
     }
 }
+console.log("hello")
 </script>
->>>>>>> parent of 78ec312 (lets' gooo)
+
 {% endblock %}

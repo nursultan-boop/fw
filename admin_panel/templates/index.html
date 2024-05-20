@@ -7,15 +7,12 @@
     <li>
         <strong>Name:</strong> {{ device.name }}<br>
         <strong>IP:</strong> {{ device.ip }}
-<<<<<<< HEAD
         <!-- Form to rename device -->
         <form action="{{ url_for('rename_device') }}" method="post" style="display:inline;">
             <input type="hidden" name="device_ip" value="{{ device.ip }}">
             <input type="text" name="new_name" placeholder="New name">
             <button type="submit">Rename</button>
         </form>
-=======
->>>>>>> parent of de90128 (Refactor group page template and add rule type selection)
     </li>
     {% endfor %}
 </ul>
