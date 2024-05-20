@@ -29,7 +29,8 @@ def scan_devices():
     command = "nmcli -t -f name,IP4.ADDRESS device | grep -E 'connected|inet4'"
     result = subprocess.run(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     output = result.stdout.decode()
-    print(output)
+    print("test")
+    print(output, flush=True)
     devices = []
     current_device = None  # Store the current device name
 
@@ -39,10 +40,10 @@ def scan_devices():
         if line:
             if line.endswith(':'):  # Device name line (ends with ':')
                 current_device = line[:-1]  # Store device name (remove the ':')
-                print(current_device)
+                print(current_device, flush=True)
             elif line.startswith('inet4'):  # IP address line
                 ip_address = line.split(' ')[1]
-                print(ip_address)
+                print(ip_address, flush=True)
                 if current_device:  # Ensure we have a valid device name
                     devices.append({"name": current_device, "ip": ip_address})
 
