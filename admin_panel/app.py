@@ -26,21 +26,23 @@ def save_data(groups):
 
 def scan_devices():
     """Scan for connected devices using nmcli."""
-    command = "nmcli -t -f DEVICE,IP4.ADDRESS"
+    command = "nmcli -t -f name,IP4.ADDRESS device | grep -E \"connected|inet4\""
     result = subprocess.run(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     output = result.stdout.decode()
     devices = []
+    current_device = None  # Store the current device name
+
     for line in output.split('\n'):
+        line = line.strip()  # Remove leading/trailing whitespace
+
         if line:
-            device=None
-            ip=None
-            if "enp" in line:
-                device = line
-            elif "inet4" in line:
-                ip=line.split(' ')[1]
-            if device and ip:
-                devices.append({"name": device, "ip": ip})
-            
+            if line.endswith(':'):  # Device name line (ends with ':')
+                current_device = line[:-1]  # Store device name (remove the ':')
+            elif line.startswith('inet4'):  # IP address line
+                ip_address = line.split(' ')[1]
+                if current_device:  # Ensure we have a valid device name
+                    devices.append({"name": current_device, "ip": ip_address})
+
     return devices
 
 @app.route('/')
