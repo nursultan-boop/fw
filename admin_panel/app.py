@@ -95,8 +95,9 @@ def remove_rule(group_name, rule):
         save_data(groups)
     return redirect(url_for('group_page', group_name=group_name))
 
-@app.route('/add_device/<group_name>/<device_ip>', methods=['POST'])
-def add_device(group_name, device_ip):
+@app.route('/add_device/<group_name>', methods=['POST'])
+def add_device(group_name):
+    device_ip = request.form['device_ip']
     groups = load_data()
     if group_name in groups:
         # Remove the device from any other group
@@ -106,6 +107,7 @@ def add_device(group_name, device_ip):
         groups[group_name]['devices'].append(device_ip)
         save_data(groups)
     return redirect(url_for('group_page', group_name=group_name))
+
 
 @app.route('/remove_device/<group_name>/<device_ip>', methods=['POST'])
 def remove_device(group_name, device_ip):
