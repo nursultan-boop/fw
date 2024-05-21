@@ -1,0 +1,25 @@
+{% extends 'layout.html' %}
+
+{% block content %}
+<h2>Device: {{ device_name }} ({{ device_ip }})</h2>
+
+<h3>Network Statistics</h3>
+<table>
+    <tr>
+        <th>Bytes Sent</th>
+        <th>Bytes Received</th>
+        <th>Packets Sent</th>
+        <th>Packets Received</th>
+    </tr>
+    <tr>
+        <td>{{ stats.bytes_sent }}</td>
+        <td>{{ stats.bytes_recv }}</td>
+        <td>{{ stats.packets_sent }}</td>
+        <td>{{ stats.packets_recv }}</td>
+    </tr>
+</table>
+
+<h3>Logs</h3>
+<pre>{{ logs }}</pre>
+
+{% endblock %}
