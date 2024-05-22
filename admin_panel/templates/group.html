@@ -29,7 +29,11 @@
 <h3>Rules</h3>
 <ul>
     {% for rule in group.rules %}
-    <li>{{ rule.type }}: {{ rule.value }}</li>
+    <li>{{ rule.type }}: {{ rule.value }}
+        <form action="{{ url_for('remove_rule', group_name=group_name, rule_index=loop.index0) }}" method="post" style="display:inline;">
+            <button type="submit">Remove</button>
+        </form>
+    </li>
     {% endfor %}
 </ul>
 <a href="{{ url_for('add_rule', group_name=group_name) }}">Add Rule</a>

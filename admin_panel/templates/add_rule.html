@@ -1,0 +1,16 @@
+{% extends 'layout.html' %}
+
+{% block content %}
+<h2>Add Rule to Group: {{ group_name }}</h2>
+<form action="{{ url_for('add_rule', group_name=group_name) }}" method="post">
+    <label for="rule_type">Rule Type:</label>
+    <select name="rule_type" id="rule_type">
+        <option value="block_ip">Block IP</option>
+        <option value="block_domain">Block Domain</option>
+        <option value="block_port">Block Port</option>
+    </select>
+    <label for="rule_value">Rule Value:</label>
+    <input type="text" name="rule_value" id="rule_value" required>
+    <button type="submit">Add Rule</button>
+</form>
+{% endblock %}

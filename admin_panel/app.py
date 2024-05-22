@@ -146,7 +146,7 @@ def remove_group(group_name):
         save_data(groups)
     return redirect(url_for('index'))
 
-@app.route('/add_rule/<group_name>', methods=['POST'])
+@app.route('/add_rule/<group_name>', methods=['GET', 'POST'])
 def add_rule(group_name):
     if request.method == 'POST':
         rule_type = request.form['rule_type']
@@ -162,15 +162,35 @@ def add_rule(group_name):
         return redirect(url_for('group_page', group_name=group_name))
     return render_template('add_rule.html', group_name=group_name)
 
-@app.route('/remove_rule/<group_name>/<rule>', methods=['POST'])
-def remove_rule(group_name, rule):
+@app.route('/remove_rule/<group_name>/<rule_index>', methods=['POST'])
+def remove_rule(group_name, rule_index):
     groups = load_data()
-    if group_name in groups and rule in groups[group_name]['rules']:
-        groups[group_name]['rules'].remove(rule)
+    rule_index = int(rule_index)
+    if group_name in groups and rule_index < len(groups[group_name]['rules']):
+        rule = groups[group_name]['rules'].pop(rule_index)
+        remove_iptables_rule(rule)
         save_data(groups)
-        # Remove the rule using iptables
-        remove_rule_iptables(rule)
     return redirect(url_for('group_page', group_name=group_name))
+
+def remove_iptables_rule(rule):
+    if rule['type'] == 'block_ip':
+        command = f"sudo iptables -D INPUT -s {rule['value']} -j DROP"
+    elif rule['type'] == 'block_domain':
+        ip = resolve_domain_to_ip(rule['value'])
+        command = f"sudo iptables -D INPUT -s {ip} -j DROP"
+    elif rule['type'] == 'block_port':
+        command = f"sudo iptables -D INPUT -p tcp --dport {rule['value']} -j DROP"
+    else:
+        return
+    subprocess.run(command, shell=True)
+
+def resolve_domain_to_ip(domain):
+    result = subprocess.run(['nslookup', domain], stdout=subprocess.PIPE)
+    output = result.stdout.decode()
+    for line in output.split('\n'):
+        if 'Address: ' in line:
+            return line.split(' ')[1]
+    return None
 
 @app.route('/add_device/<group_name>', methods=['POST'])
 def add_device(group_name):
