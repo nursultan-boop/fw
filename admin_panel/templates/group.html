@@ -50,7 +50,7 @@
 <ul>
     {% for device in devices %}
     <li>{{ device.name }} ({{ device.ip }})
-        <a href="{{ url_for('monitor_traffic', device_ip=device.ip) }}">Monitor</a>
+        <a href="{{ url_for('monitor_device', device_ip=device.ip) }}">Monitor</a>
     </li>
     {% endfor %}
 </ul>
