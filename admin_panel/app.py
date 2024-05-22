@@ -5,6 +5,8 @@ import psutil
 from flask import Flask, render_template, request, redirect, url_for, jsonify
 import random
 import time
+import importlib.util
+
 
 app = Flask(__name__)
 
@@ -26,6 +28,10 @@ def load_data():
 def save_data(groups):
     with open(GROUPS_FILE, 'w') as f:
         json.dump(groups, f)
+
+def discover_modules():
+    modules_dir = os.path.join(os.path.dirname(__file__), '../modules')
+    return [f.split('.')[0] for f in os.listdir(modules_dir) if f.endswith('.py')]
 
 def scan_devices():
     """Scan for connected devices using nmcli."""
@@ -97,13 +103,14 @@ def apply_rule(rule):
 def index():
     devices = scan_devices_and_update()
     groups = load_data()
+    modules = discover_modules()
     # Add new devices to the default group if they are not in any group
     for device in devices:
         if not any(device['ip'] in group['devices'] for group in groups.values()):
             groups['default']['devices'].append(device['ip'])
     
     save_data(groups)
-    return render_template('index.html', devices=devices, groups=groups)
+    return render_template('index.html', devices=devices, groups=groups, modules=modules)
 
 @app.route('/group/<group_name>')
 def group_page(group_name):
@@ -221,18 +228,27 @@ def device_stats(device_ip):
 
 @app.route('/toggle_module/<module_name>', methods=['POST'])
 def toggle_module(module_name):
-    # Example toggling logic (you need to implement the actual enabling/disabling logic)
     try:
-        module = __import__(f"../modules/{module_name}")
+        module_path = os.path.join(os.path.dirname(__file__), '../modules', f'{module_name}.py')
+        
+        # Verify the module file exists
+        if not os.path.isfile(module_path):
+            return jsonify(success=False, error=f"Module file not found: {module_path}")
+
+        spec = importlib.util.spec_from_file_location(module_name, module_path)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+
         if getattr(module, 'enabled', False):
             module.disable_module()
             module.enabled = False
         else:
             module.enable_module()
             module.enabled = True
+
         return jsonify(success=True)
-    except ImportError:
-        return jsonify(success=False, error="Module not found")
+    except Exception as e:
+        return jsonify(success=False, error=str(e))
 
 def apply_rule(rule):
     if rule['type'] == 'block_ip':

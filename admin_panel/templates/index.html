@@ -15,10 +15,6 @@
 
 <h2>Device Groups</h2>
 <table>
-    <tr>
-        <th>Group Name</th>
-        <th>Actions</th>
-    </tr>
     {% for group_name, group in groups.items() %}
     <tr>
         <td><a href="{{ url_for('group_page', group_name=group_name) }}">{{ group_name }}</a></td>
@@ -36,7 +32,7 @@
 
 <h2 id="modules">Modules</h2>
 <ul>
-    {% for module in ['example_module'] %}
+    {% for module in modules %}
     <li>
         {{ module }}
         <button onclick="location.href='{{ url_for('module_page', module_name=module) }}'">Manage</button>
