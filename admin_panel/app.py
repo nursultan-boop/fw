@@ -10,7 +10,7 @@ import importlib.util
 
 app = Flask(__name__)
 
-# Load data
+#region Load data
 DATA_DIR = os.path.join(os.path.dirname(__file__), '../data')
 GROUPS_FILE = os.path.join(DATA_DIR, 'groups.json')
 
@@ -29,9 +29,7 @@ def save_data(groups):
     with open(GROUPS_FILE, 'w') as f:
         json.dump(groups, f)
 
-def discover_modules():
-    modules_dir = os.path.join(os.path.dirname(__file__), '../modules')
-    return [f.split('.')[0] for f in os.listdir(modules_dir) if f.endswith('.py')]
+
 
 def scan_devices():
     """Scan for connected devices using nmcli."""
@@ -80,7 +78,9 @@ def get_network_stats(device_ip):
 def get_device_logs(device_ip):
     # For demonstration purposes, we return a static log. Replace with actual log retrieval logic.
     return f"Logs for device with IP {device_ip}"
+#endregion
 
+#region rules
 def apply_rule(rule):
     chain = iptc.Chain(iptc.Table(iptc.Table.FILTER), "INPUT")
     rule_parts = rule.split()
@@ -98,60 +98,6 @@ def apply_rule(rule):
             match.dport = rule_parts[2]
             iptc_rule.add_match(match)
         chain.insert_rule(iptc_rule)
-
-@app.route('/')
-def index():
-    devices = scan_devices_and_update()
-    groups = load_data()
-    modules = discover_modules()
-    # Add new devices to the default group if they are not in any group
-    for device in devices:
-        if not any(device['ip'] in group['devices'] for group in groups.values()):
-            groups['default']['devices'].append(device['ip'])
-    
-    save_data(groups)
-    return render_template('index.html', devices=devices, groups=groups, modules=modules)
-
-@app.route('/group/<group_name>')
-def group_page(group_name):
-    devices = scan_devices_and_update()
-    groups = load_data()
-    group = groups.get(group_name, {"rules": [], "devices": []})
-    return render_template('group.html', group_name=group_name, group=group, devices=devices)
-
-@app.route('/monitor_device/<device_ip>')
-def monitor_device(device_ip):
-    devices = scan_devices()
-    device_name = next((device['name'] for device in devices if device['ip'] == device_ip), 'Unknown')
-    return render_template('device.html', device_name=device_name, device_ip=device_ip)
-
-
-
-@app.route('/module/<module_name>')
-def module_page(module_name):
-    return render_template(f'module_{module_name}.html')
-
-@app.route('/add_group', methods=['GET', 'POST'])
-def add_group():
-    if request.method == 'POST':
-        group_name = request.form['group_name']
-        groups = load_data()
-        if group_name not in groups:
-            groups[group_name] = {"rules": [], "devices": []}
-            save_data(groups)
-        return redirect(url_for('index'))
-    return render_template('add_group.html')
-
-@app.route('/remove_group/<group_name>', methods=['POST'])
-def remove_group(group_name):
-    groups = load_data()
-    if group_name in groups and group_name != 'default':
-        # Move devices from the group to the default group
-        devices_to_move = groups[group_name]['devices']
-        groups['default']['devices'].extend(devices_to_move)        
-        del groups[group_name]
-        save_data(groups)
-    return redirect(url_for('index'))
 
 @app.route('/add_rule/<group_name>', methods=['GET', 'POST'])
 def add_rule(group_name):
@@ -199,6 +145,74 @@ def resolve_domain_to_ip(domain):
             return line.split(' ')[1]
     return None
 
+def apply_rule(rule):
+    if rule['type'] == 'block_ip':
+        command = f"sudo iptables -A FORWARD -s {rule['value']} -j REJECT"
+    elif rule['type'] == 'block_domain':
+        # Assuming you have a method to resolve domain to IP
+        ip = resolve_domain_to_ip(rule['value'])
+        command = f"sudo iptables -A FORWARD -s {ip} -j REJECT"
+    elif rule['type'] == 'block_port':
+        command = f"sudo iptables -A FORWARD -p tcp --dport {rule['value']} -j REJECT"
+    else:
+        return
+    subprocess.run(command, shell=True)
+
+def resolve_domain_to_ip(domain):
+    result = subprocess.run(['nslookup', domain], stdout=subprocess.PIPE)
+    output = result.stdout.decode()
+    for line in output.split('\n'):
+        if 'Address: ' in line:
+            return line.split(' ')[1]
+    return None
+
+def remove_rule_iptables(rule):
+    # Remove the rule using iptables
+    command = f"iptables -D {rule}"
+    subprocess.run(command, shell=True)
+#endregion
+
+#region groups
+@app.route('/group/<group_name>')
+def group_page(group_name):
+    devices = scan_devices_and_update()
+    groups = load_data()
+    group = groups.get(group_name, {"rules": [], "devices": []})
+    return render_template('group.html', group_name=group_name, group=group, devices=devices)
+
+@app.route('/add_group', methods=['GET', 'POST'])
+def add_group():
+    if request.method == 'POST':
+        group_name = request.form['group_name']
+        groups = load_data()
+        if group_name not in groups:
+            groups[group_name] = {"rules": [], "devices": []}
+            save_data(groups)
+        return redirect(url_for('index'))
+    return render_template('add_group.html')
+
+@app.route('/remove_group/<group_name>', methods=['POST'])
+def remove_group(group_name):
+    groups = load_data()
+    if group_name in groups and group_name != 'default':
+        # Move devices from the group to the default group
+        devices_to_move = groups[group_name]['devices']
+        groups['default']['devices'].extend(devices_to_move)        
+        del groups[group_name]
+        save_data(groups)
+    return redirect(url_for('index'))
+
+
+#endregion
+
+#region devices
+
+@app.route('/monitor_device/<device_ip>')
+def monitor_device(device_ip):
+    devices = scan_devices()
+    device_name = next((device['name'] for device in devices if device['ip'] == device_ip), 'Unknown')
+    return render_template('device.html', device_name=device_name, device_ip=device_ip)
+
 @app.route('/add_device/<group_name>', methods=['POST'])
 def add_device(group_name):
     device_ip = request.form['device_ip']
@@ -226,11 +240,35 @@ def device_stats(device_ip):
     stats = get_network_stats(device_ip)
     return jsonify(stats)
 
+#endregion
+
+#region modules
+
+def discover_modules():
+    modules_dir = os.path.join(os.path.dirname(__file__), '../modules')
+    modules = []
+    for filename in os.listdir(modules_dir):
+        if filename.endswith('.py'):
+            module_name = filename[:-3]
+            module_path = os.path.join(modules_dir, filename)
+            spec = importlib.util.spec_from_file_location(module_name, module_path)
+            module = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(module)
+            modules.append({
+                'name': module_name,
+                'enabled': getattr(module, 'enabled', False)
+            })
+    return modules
+
+@app.route('/module/<module_name>')
+def module_page(module_name):
+    return render_template(f'module_{module_name}.html')
+
 @app.route('/toggle_module/<module_name>', methods=['POST'])
 def toggle_module(module_name):
     try:
         module_path = os.path.join(os.path.dirname(__file__), '../modules', f'{module_name}.py')
-        
+
         # Verify the module file exists
         if not os.path.isfile(module_path):
             return jsonify(success=False, error=f"Module file not found: {module_path}")
@@ -250,31 +288,20 @@ def toggle_module(module_name):
     except Exception as e:
         return jsonify(success=False, error=str(e))
 
-def apply_rule(rule):
-    if rule['type'] == 'block_ip':
-        command = f"sudo iptables -A FORWARD -s {rule['value']} -j REJECT"
-    elif rule['type'] == 'block_domain':
-        # Assuming you have a method to resolve domain to IP
-        ip = resolve_domain_to_ip(rule['value'])
-        command = f"sudo iptables -A FORWARD -s {ip} -j REJECT"
-    elif rule['type'] == 'block_port':
-        command = f"sudo iptables -A FORWARD -p tcp --dport {rule['value']} -j REJECT"
-    else:
-        return
-    subprocess.run(command, shell=True)
+#endregion
 
-def resolve_domain_to_ip(domain):
-    result = subprocess.run(['nslookup', domain], stdout=subprocess.PIPE)
-    output = result.stdout.decode()
-    for line in output.split('\n'):
-        if 'Address: ' in line:
-            return line.split(' ')[1]
-    return None
-
-def remove_rule_iptables(rule):
-    # Remove the rule using iptables
-    command = f"iptables -D {rule}"
-    subprocess.run(command, shell=True)
+@app.route('/')
+def index():
+    devices = scan_devices_and_update()
+    groups = load_data()
+    modules = discover_modules()
+    # Add new devices to the default group if they are not in any group
+    for device in devices:
+        if not any(device['ip'] in group['devices'] for group in groups.values()):
+            groups['default']['devices'].append(device['ip'])
+    
+    save_data(groups)
+    return render_template('index.html', devices=devices, groups=groups, modules=modules)
 
 if __name__ == '__main__':
     app.run(debug=True)
