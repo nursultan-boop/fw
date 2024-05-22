@@ -51,7 +51,7 @@ def scan_devices():
 def scan_devices_and_update():
     devices = scan_devices()
     groups = load_data()
-    known_ips = {device['ip'] for group in groups.values() for device in group['devices']}
+    known_ips = {ip for group in groups.values() for ip in group['devices']}
     default_group = groups.setdefault('default', {"rules": [], "devices": []})
 
     for device in devices:
@@ -62,11 +62,20 @@ def scan_devices_and_update():
     return devices
 
 def get_network_stats(device_ip):
+    stats = {
+        "bytes_sent": 0,
+        "bytes_recv": 0,
+        "packets_sent": 0,
+        "packets_recv": 0
+    }
     net_io = psutil.net_io_counters(pernic=True)
-    for iface, stats in net_io.items():
-        if device_ip in iface:
-            return stats._asdict()
-    return {}
+    for nic, io in net_io.items():
+        if device_ip in nic:
+            stats['bytes_sent'] = io.bytes_sent
+            stats['bytes_recv'] = io.bytes_recv
+            stats['packets_sent'] = io.packets_sent
+            stats['packets_recv'] = io.packets_recv
+    return stats
 
 def get_device_logs(device_ip):
     # For demonstration purposes, we return a static log. Replace with actual log retrieval logic.
@@ -107,8 +116,7 @@ def group_page(group_name):
     devices = scan_devices_and_update()
     groups = load_data()
     group = groups.get(group_name, {"rules": [], "devices": []})
-    rule_types = ["block ip", "block domain"]
-    return render_template('group.html', group_name=group_name, group=group, devices=devices, rule_types=rule_types)
+    return render_template('group.html', group_name=group_name, group=group, devices=devices)
 
 @app.route('/monitor_device/<device_ip>')
 def monitor_device(device_ip):
@@ -140,8 +148,7 @@ def remove_group(group_name):
     if group_name in groups and group_name != 'default':
         # Move devices from the group to the default group
         devices_to_move = groups[group_name]['devices']
-        groups['default']['devices'].extend(devices_to_move)
-        
+        groups['default']['devices'].extend(devices_to_move)        
         del groups[group_name]
         save_data(groups)
     return redirect(url_for('index'))
