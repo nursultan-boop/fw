@@ -3,10 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel= "stylesheet" type= "text/css" href= "{{ url_for('static', filename='style.css') }}" >
     <title>Firewall Admin Panel</title>
 </head>
 <body>
     <h1>Firewall Admin Panel</h1>
+    <a href="{{ url_for('index') }}">Home</a>
     {% block content %}{% endblock %}
 </body>
 </html>
