@@ -1,25 +1,36 @@
 {% extends 'layout.html' %}
 
 {% block content %}
-<h2>Device: {{ device_name }} ({{ device_ip }})</h2>
+<h2>Device: {{ device_name }}</h2>
+<h3>IP Address: {{ device_ip }}</h3>
 
-<h3>Network Statistics</h3>
-<table>
-    <tr>
-        <th>Bytes Sent</th>
-        <th>Bytes Received</th>
-        <th>Packets Sent</th>
-        <th>Packets Received</th>
-    </tr>
-    <tr>
-        <td>{{ stats.bytes_sent }}</td>
-        <td>{{ stats.bytes_recv }}</td>
-        <td>{{ stats.packets_sent }}</td>
-        <td>{{ stats.packets_recv }}</td>
-    </tr>
-</table>
+<div id="stats">
+    <h3>Network Statistics</h3>
+    <p>Bytes Sent: <span id="bytes_sent">0</span></p>
+    <p>Bytes Received: <span id="bytes_recv">0</span></p>
+    <p>Packets Sent: <span id="packets_sent">0</span></p>
+    <p>Packets Received: <span id="packets_recv">0</span></p>
+</div>
 
-<h3>Logs</h3>
-<pre>{{ logs }}</pre>
+<div id="logs">
+    <h3>Logs</h3>
+    <pre>{{ logs }}</pre>
+</div>
+
+<script>
+function updateStats() {
+    fetch(`/device_stats/{{ device_ip }}`)
+    .then(response => response.json())
+    .then(data => {
+        document.getElementById('bytes_sent').innerText = data.bytes_sent;
+        document.getElementById('bytes_recv').innerText = data.bytes_recv;
+        document.getElementById('packets_sent').innerText = data.packets_sent;
+        document.getElementById('packets_recv').innerText = data.packets_recv;
+    });
+}
+
+setInterval(updateStats, 2000);
+updateStats();
+</script>
 
 {% endblock %}

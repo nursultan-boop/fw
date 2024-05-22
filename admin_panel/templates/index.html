@@ -5,8 +5,7 @@
 <ul>
     {% for device in devices %}
     <li>
-        <strong>{{ device.name }}</strong> ({{ device.ip }})
-        <a href="{{ url_for('monitor_device', device_ip=device.ip) }}">Monitor</a>
+        <a href="{{ url_for('monitor_device', device_ip=device.ip) }}"></a><strong>{{ device.name }}</strong> ({{ device.ip }}) </a>
         <form action="{{ url_for('remove_device', group_name='default', device_ip=device.ip) }}" method="post" style="display:inline;">
             <button type="submit">Remove</button>
         </form>

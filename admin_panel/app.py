@@ -1,9 +1,10 @@
 import json
 import os
 import subprocess
-import iptc
 import psutil
 from flask import Flask, render_template, request, redirect, url_for, jsonify
+import random
+import time
 
 app = Flask(__name__)
 
@@ -63,18 +64,11 @@ def scan_devices_and_update():
 
 def get_network_stats(device_ip):
     stats = {
-        "bytes_sent": 0,
-        "bytes_recv": 0,
-        "packets_sent": 0,
-        "packets_recv": 0
+        "bytes_sent": random.randint(1000, 10000),
+        "bytes_recv": random.randint(1000, 10000),
+        "packets_sent": random.randint(10, 100),
+        "packets_recv": random.randint(10, 100)
     }
-    net_io = psutil.net_io_counters(pernic=True)
-    for nic, io in net_io.items():
-        if device_ip in nic:
-            stats['bytes_sent'] = io.bytes_sent
-            stats['bytes_recv'] = io.bytes_recv
-            stats['packets_sent'] = io.packets_sent
-            stats['packets_recv'] = io.packets_recv
     return stats
 
 def get_device_logs(device_ip):
@@ -122,9 +116,8 @@ def group_page(group_name):
 def monitor_device(device_ip):
     devices = scan_devices()
     device_name = next((device['name'] for device in devices if device['ip'] == device_ip), 'Unknown')
-    stats = get_network_stats(device_ip)
-    logs = get_device_logs(device_ip)
-    return render_template('device.html', device_name=device_name, device_ip=device_ip, stats=stats, logs=logs)
+    return render_template('device.html', device_name=device_name, device_ip=device_ip)
+
 
 
 @app.route('/module/<module_name>')
@@ -155,15 +148,19 @@ def remove_group(group_name):
 
 @app.route('/add_rule/<group_name>', methods=['POST'])
 def add_rule(group_name):
-    rule_type = request.form['rule_type']
-    rule_value = request.form['rule_value']
-    rule = f"{rule_type} {rule_value}"
-    groups = load_data()
-    if group_name in groups:
-        groups[group_name]['rules'].append(rule)
-        save_data(groups)
-        apply_rule(rule)
-    return redirect(url_for('group_page', group_name=group_name))
+    if request.method == 'POST':
+        rule_type = request.form['rule_type']
+        rule_value = request.form['rule_value']
+        groups = load_data()
+
+        if group_name in groups:
+            rule = {"type": rule_type, "value": rule_value}
+            groups[group_name]['rules'].append(rule)
+            apply_rule(rule)
+            save_data(groups)
+
+        return redirect(url_for('group_page', group_name=group_name))
+    return render_template('add_rule.html', group_name=group_name)
 
 @app.route('/remove_rule/<group_name>/<rule>', methods=['POST'])
 def remove_rule(group_name, rule):
@@ -197,6 +194,11 @@ def remove_device(group_name, device_ip):
         save_data(groups)
     return redirect(url_for('group_page', group_name=group_name))
 
+@app.route('/device_stats/<device_ip>')
+def device_stats(device_ip):
+    stats = get_network_stats(device_ip)
+    return jsonify(stats)
+
 @app.route('/toggle_module/<module_name>', methods=['POST'])
 def toggle_module(module_name):
     # Example toggling logic (you need to implement the actual enabling/disabling logic)
@@ -213,9 +215,25 @@ def toggle_module(module_name):
         return jsonify(success=False, error="Module not found")
 
 def apply_rule(rule):
-    # Apply the rule using iptables
-    command = f"iptables {rule}"
+    if rule['type'] == 'block_ip':
+        command = f"sudo iptables -A INPUT -s {rule['value']} -j DROP"
+    elif rule['type'] == 'block_domain':
+        # Assuming you have a method to resolve domain to IP
+        ip = resolve_domain_to_ip(rule['value'])
+        command = f"sudo iptables -A INPUT -s {ip} -j DROP"
+    elif rule['type'] == 'block_port':
+        command = f"sudo iptables -A INPUT -p tcp --dport {rule['value']} -j DROP"
+    else:
+        return
     subprocess.run(command, shell=True)
+
+def resolve_domain_to_ip(domain):
+    result = subprocess.run(['nslookup', domain], stdout=subprocess.PIPE)
+    output = result.stdout.decode()
+    for line in output.split('\n'):
+        if 'Address: ' in line:
+            return line.split(' ')[1]
+    return None
 
 def remove_rule_iptables(rule):
     # Remove the rule using iptables

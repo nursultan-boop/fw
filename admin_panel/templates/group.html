@@ -2,57 +2,35 @@
 
 {% block content %}
 <h2>Group: {{ group_name }}</h2>
-
+<h3>Devices</h3>
+<table>
+    <tr>
+        <th>Device Name</th>
+        <th>IP Address</th>
+        <th>Actions</th>
+    </tr>
+    {% for device in devices %}
+    {% if device.ip in group.devices %}
+    <tr>
+        <td>{{ device.name }}</td>
+        <td>{{ device.ip }}</td>
+        <td>
+            <a href="{{ url_for('monitor_device', device_ip=device.ip) }}">Monitor Traffic</a>
+            {% if group_name != 'default' %}
+            <form action="{{ url_for('remove_device', group_name=group_name, device_ip=device.ip) }}" method="post" style="display:inline;">
+                <button type="submit">Remove</button>
+            </form>
+            {% endif %}
+        </td>
+    </tr>
+    {% endif %}
+    {% endfor %}
+</table>
 <h3>Rules</h3>
 <ul>
     {% for rule in group.rules %}
-    <li>{{ rule }}
-        <form action="{{ url_for('remove_rule', group_name=group_name, rule=rule) }}" method="post" style="display:inline;">
-            <button type="submit">Remove</button>
-        </form>
-    </li>
+    <li>{{ rule.type }}: {{ rule.value }}</li>
     {% endfor %}
 </ul>
-
-<!-- Form to add a new rule -->
-<form action="{{ url_for('add_rule', group_name=group_name) }}" method="post">
-    <select name="rule_type">
-        {% for rule_type in rule_types %}
-        <option value="{{ rule_type }}">{{ rule_type }}</option>
-        {% endfor %}
-    </select>
-    <input type="text" name="rule_value" placeholder="Enter IP, domain, or port" required>
-    <button type="submit">Add Rule</button>
-</form>
-
-<h3>Devices</h3>
-<ul>
-    {% for device_ip in group.devices %}
-    <li>{{ device_ip }}
-        <form action="{{ url_for('remove_device', group_name=group_name, device_ip=device_ip) }}" method="post" style="display:inline;">
-            <button type="submit">Remove</button>
-        </form>
-    </li>
-    {% endfor %}
-</ul>
-
-<h3>Add Device to Group</h3>
-<form action="{{ url_for('add_device', group_name=group_name) }}" method="post">
-    <select name="device_ip">
-        {% for device in devices %}
-        <option value="{{ device.ip }}">{{ device.name }} ({{ device.ip }})</option>
-        {% endfor %}
-    </select>
-    <button type="submit">Add Device</button>
-</form>
-
-<h3>Monitor Traffic</h3>
-<ul>
-    {% for device in devices %}
-    <li>{{ device.name }} ({{ device.ip }})
-        <a href="{{ url_for('monitor_device', device_ip=device.ip) }}">Monitor</a>
-    </li>
-    {% endfor %}
-</ul>
-
+<a href="{{ url_for('add_rule', group_name=group_name) }}">Add Rule</a>
 {% endblock %}
