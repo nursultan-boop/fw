@@ -174,12 +174,12 @@ def remove_rule(group_name, rule_index):
 
 def remove_iptables_rule(rule):
     if rule['type'] == 'block_ip':
-        command = f"sudo iptables -D INPUT -s {rule['value']} -j DROP"
+        command = f"sudo iptables -D FORWARD -s {rule['value']} -j DROP"
     elif rule['type'] == 'block_domain':
         ip = resolve_domain_to_ip(rule['value'])
-        command = f"sudo iptables -D INPUT -s {ip} -j DROP"
+        command = f"sudo iptables -D FORWARD -s {ip} -j DROP"
     elif rule['type'] == 'block_port':
-        command = f"sudo iptables -D INPUT -p tcp --dport {rule['value']} -j DROP"
+        command = f"sudo iptables -D FORWARD -p tcp --dport {rule['value']} -j DROP"
     else:
         return
     subprocess.run(command, shell=True)
@@ -236,13 +236,13 @@ def toggle_module(module_name):
 
 def apply_rule(rule):
     if rule['type'] == 'block_ip':
-        command = f"sudo iptables -A INPUT -s {rule['value']} -j DROP"
+        command = f"sudo iptables -A FORWARD -s {rule['value']} -j REJECT"
     elif rule['type'] == 'block_domain':
         # Assuming you have a method to resolve domain to IP
         ip = resolve_domain_to_ip(rule['value'])
-        command = f"sudo iptables -A INPUT -s {ip} -j DROP"
+        command = f"sudo iptables -A FORWARD -s {ip} -j REJECT"
     elif rule['type'] == 'block_port':
-        command = f"sudo iptables -A INPUT -p tcp --dport {rule['value']} -j DROP"
+        command = f"sudo iptables -A FORWARD -p tcp --dport {rule['value']} -j REJECT"
     else:
         return
     subprocess.run(command, shell=True)
