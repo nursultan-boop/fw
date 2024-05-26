@@ -290,15 +290,17 @@ def toggle_module(module_name):
     enabled = get_module_state(module_name)
 
     if enabled:
-        if module_name == 'intrusion_prevention':
-            os.system('pkill -f intrusion_prevention.py')
         module.disable_module()
         enabled = False
-    else:
         if module_name == 'intrusion_prevention':
-            os.system('python3 ../modules/intrusion_prevention.py')
+            os.system('pkill -f intrusion_prevention.py')
+        
+    else:
         module.enable_module()
         enabled = True
+        if module_name == 'intrusion_prevention':
+            os.system('python3 ../modules/intrusion_prevention.py')
+        
 
     with open(os.path.join(DATA_DIR, f'{module_name}.json'), 'w') as f:
         json.dump({'enabled': enabled}, f)
