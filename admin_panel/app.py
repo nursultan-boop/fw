@@ -33,6 +33,17 @@ def get_module_logs(module_name):
 if not os.path.exists(DATA_DIR):
     os.makedirs(DATA_DIR)
 
+log_file = os.path.join(DATA_DIR, 'intrusion_prevention_log.json')
+
+def write_log(entry):
+    logs = []
+    if os.path.exists(log_file):
+        with open(log_file, 'r') as f:
+            logs = json.load(f)
+    logs.append(entry)
+    with open(log_file, 'w') as f:
+        json.dump(logs, f)
+
 def load_data():
     if not os.path.exists(GROUPS_FILE):
         with open(GROUPS_FILE, 'w') as f:

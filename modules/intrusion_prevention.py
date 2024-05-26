@@ -1,75 +1,78 @@
-import subprocess
-import os
+from scapy.all import sniff, IP, TCP, UDP
 import json
-from datetime import datetime
+import os
+import time
+from collections import defaultdict
 
-# Module metadata
-module_name = 'intrusion_prevention'
-state_file = os.path.join(os.path.dirname(__file__), '..', 'data', f'{module_name}.json')
-log_file = os.path.join(os.path.dirname(__file__), '..', 'data', f'{module_name}_log.json')
+log_file = 'data/intrusion_prevention_log.json'
 
-# Load the initial state from the JSON file
-def load_state():
-    if os.path.exists(state_file):
-        with open(state_file, 'r') as f:
-            state = json.load(f)
-            return state.get('enabled', False)
-    return False
+# Track IP and port activity
+failed_login_attempts = defaultdict(int)
+high_traffic_counts = defaultdict(int)
 
-# Save the current state to the JSON file
-def save_state(enabled):
-    with open(state_file, 'w') as f:
-        json.dump({'enabled': enabled}, f)
-
-# Log an action
-def log_action(action, details=""):
-    log_entry = {
-        'timestamp': datetime.utcnow().isoformat() + 'Z',
-        'action': action,
-        'details': details
-    }
+def write_log(entry):
+    logs = []
     if os.path.exists(log_file):
         with open(log_file, 'r') as f:
             logs = json.load(f)
-    else:
-        logs = []
-    logs.append(log_entry)
+    logs.append(entry)
     with open(log_file, 'w') as f:
-        json.dump(logs, f, indent=4)
+        json.dump(logs, f)
 
-# Initialize the enabled state
-enabled = load_state()
+def detect_attack(packet):
+    if packet.haslayer(TCP) or packet.haslayer(UDP):
+        ip_src = packet[IP].src
+        ip_dst = packet[IP].dst
+        proto = packet[IP].proto
+        if packet.haslayer(TCP):
+            dport = packet[TCP].dport
+            sport = packet[TCP].sport
+        elif packet.haslayer(UDP):
+            dport = packet[UDP].dport
+            sport = packet[UDP].sport
 
-def enable_module():
-    global enabled
-    if not enabled:
-        # Add iptables rules for intrusion prevention (example rules, adjust as needed)
-        commands = [
-            "sudo iptables -A INPUT -p tcp --dport 22 -m state --state NEW -m recent --set",
-            "sudo iptables -A INPUT -p tcp --dport 22 -m state --state NEW -m recent --update --seconds 60 --hitcount 5 -j DROP",
-            "sudo iptables -A INPUT -m state --state NEW -m recent --set",
-            "sudo iptables -A INPUT -m state --state NEW -m recent --update --seconds 60 --hitcount 10 -j DROP"
-        ]
-        for command in commands:
-            subprocess.run(command, shell=True)
-        enabled = True
-        save_state(enabled)
-        log_action("enabled", "Intrusion prevention enabled.")
-        print("Intrusion prevention enabled.")
+        # Detect Port Scanning
+        if packet.haslayer(TCP) and packet[TCP].flags == "S":  # SYN flag
+            log_entry = {
+                'timestamp': time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime()),
+                'source_ip': ip_src,
+                'destination_ip': ip_dst,
+                'protocol': 'TCP',
+                'action': 'Blocked',
+                'reason': f'Port scan detected on port {dport}'
+            }
+            write_log(log_entry)
+            print(f"Port scan detected from {ip_src} to {ip_dst}:{dport}")
 
-def disable_module():
-    global enabled
-    if enabled:
-        # Remove iptables rules for intrusion prevention
-        commands = [
-            "sudo iptables -D INPUT -p tcp --dport 22 -m state --state NEW -m recent --set",
-            "sudo iptables -D INPUT -p tcp --dport 22 -m state --state NEW -m recent --update --seconds 60 --hitcount 5 -j DROP",
-            "sudo iptables -D INPUT -m state --state NEW -m recent --set",
-            "sudo iptables -D INPUT -m state --state NEW -m recent --update --seconds 60 --hitcount 10 -j DROP"
-        ]
-        for command in commands:
-            subprocess.run(command, shell=True)
-        enabled = False
-        save_state(enabled)
-        log_action("disabled", "Intrusion prevention disabled.")
-        print("Intrusion prevention disabled.")
+        # Detect Brute Force Login Attempts (example for SSH)
+        if packet.haslayer(TCP) and dport == 22:  # SSH port
+            if packet[TCP].flags == "S":  # SYN flag (connection attempt)
+                failed_login_attempts[ip_src] += 1
+                if failed_login_attempts[ip_src] > 5:  # Threshold for brute force detection
+                    log_entry = {
+                        'timestamp': time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime()),
+                        'source_ip': ip_src,
+                        'destination_ip': ip_dst,
+                        'protocol': 'TCP',
+                        'action': 'Blocked',
+                        'reason': f'Brute force login attempt detected on port {dport}'
+                    }
+                    write_log(log_entry)
+                    print(f"Brute force login attempt detected from {ip_src} to {ip_dst}:{dport}")
+
+        # Detect DoS Attacks
+        high_traffic_counts[(ip_src, ip_dst, dport)] += 1
+        if high_traffic_counts[(ip_src, ip_dst, dport)] > 100:  # Threshold for high traffic detection
+            log_entry = {
+                'timestamp': time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime()),
+                'source_ip': ip_src,
+                'destination_ip': ip_dst,
+                'protocol': 'TCP' if packet.haslayer(TCP) else 'UDP',
+                'action': 'Blocked',
+                'reason': f'Possible DoS attack detected on port {dport}'
+            }
+            write_log(log_entry)
+            print(f"Possible DoS attack detected from {ip_src} to {ip_dst}:{dport}")
+
+# Sniffing on the network interface (e.g., eth0)
+sniff(prn=detect_attack, filter="ip", store=0, iface="eth0")
