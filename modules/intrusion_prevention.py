@@ -46,17 +46,18 @@ def detect_attack(packet):
             sport = packet[UDP].sport
         
         # Detect Port Scanning
-        if tcp_layer.flags & 0x02:
-            print(f"SYN packet detected: {ip_src} -> {ip_dst}:{tcp_layer.dport}")  # Debug print
-            log_entry = {
-                'timestamp': time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime()),
-                'source_ip': ip_src,
-                'destination_ip': ip_dst,
-                'protocol': 'TCP',
-                'action': 'Detected',
-                'reason': f'SYN packet detected on port {tcp_layer.dport}'
-            }
-            write_log(log_entry)
+        if packet.haslayer(TCP):
+            if tcp_layer.flags & 0x02:
+                print(f"SYN packet detected: {ip_src} -> {ip_dst}:{tcp_layer.dport}")  # Debug print
+                log_entry = {
+                    'timestamp': time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime()),
+                    'source_ip': ip_src,
+                    'destination_ip': ip_dst,
+                    'protocol': 'TCP',
+                    'action': 'Detected',
+                    'reason': f'SYN packet detected on port {tcp_layer.dport}'
+                }
+                write_log(log_entry)
 
         # Detect Brute Force Login Attempts (example for SSH)
         if packet.haslayer(TCP) and dport == 22:
