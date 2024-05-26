@@ -1,31 +1,28 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Intrusion Prevention Module</title>
-    <script>
-        function fetchLogs() {
-            fetch(`/module_logs/intrusion_prevention`)
-                .then(response => response.json())
-                .then(data => {
-                    const logContainer = document.getElementById('log-container');
-                    logContainer.innerHTML = '';
-                    data.logs.forEach(log => {
-                        const logEntry = document.createElement('div');
-                        logEntry.textContent = `${log.timestamp} - ${log.source_ip} -> ${log.destination_ip} [${log.protocol}] - ${log.action}: ${log.reason}`;
-                        logContainer.appendChild(logEntry);
-                    });
-                });
-        }
-
-        setInterval(fetchLogs, 5000); // Fetch logs every 5 seconds
-    </script>
-</head>
-<body>
-    <h1>Intrusion Prevention Module</h1>
-    <div id="log-container"></div>
-    <script>
-        fetchLogs(); // Initial log fetch
-    </script>
-</body>
-</html>
+{% extends "layout.html" %}
+{% block content %}
+<h2>Intrusion Prevention Logs</h2>
+<table>
+    <thead>
+        <tr>
+            <th>Timestamp</th>
+            <th>Source IP</th>
+            <th>Destination IP</th>
+            <th>Protocol</th>
+            <th>Action</th>
+            <th>Reason</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for log in logs %}
+        <tr>
+            <td>{{ log.timestamp }}</td>
+            <td>{{ log.source_ip }}</td>
+            <td>{{ log.destination_ip }}</td>
+            <td>{{ log.protocol }}</td>
+            <td>{{ log.action }}</td>
+            <td>{{ log.reason }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}
