@@ -260,6 +260,7 @@ def module_logs(module_name):
 def discover_modules():
     modules_dir = os.path.join(os.path.dirname(__file__), '../modules')
     modules = []
+    enabled = get_module_state(module_name)
     for filename in os.listdir(modules_dir):
         if filename.endswith('.py'):
             module_name = filename[:-3]
@@ -269,7 +270,7 @@ def discover_modules():
             spec.loader.exec_module(module)
             modules.append({
                 'name': module_name,
-                'enabled': getattr(module, 'enabled', False)
+                'enabled': enabled
             })
     return modules
 
