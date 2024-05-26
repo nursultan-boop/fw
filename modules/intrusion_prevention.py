@@ -37,16 +37,17 @@ def detect_attack(packet):
         
         
         if packet.haslayer(TCP):
-            tcp_layer = packet[TCP]
-            dport = packet[TCP].dport
-            sport = packet[TCP].sport
-            flags = packet[TCP].flags
+            
         elif packet.haslayer(UDP):
             dport = packet[UDP].dport
             sport = packet[UDP].sport
         
         # Detect Port Scanning
         if packet.haslayer(TCP):
+            tcp_layer = packet[TCP]
+            dport = packet[TCP].dport
+            sport = packet[TCP].sport
+            flags = packet[TCP].flags
             if tcp_layer.flags & 0x02:
                 print(f"SYN packet detected: {ip_src} -> {ip_dst}:{tcp_layer.dport}")  # Debug print
                 log_entry = {
@@ -58,10 +59,8 @@ def detect_attack(packet):
                     'reason': f'SYN packet detected on port {tcp_layer.dport}'
                 }
                 write_log(log_entry)
-
-        # Detect Brute Force Login Attempts (example for SSH)
-        if packet.haslayer(TCP) and dport == 22:
-            if packet[TCP].flags == "S":
+            # Detect Brute Force Login Attempts (example for SSH)
+            if dport ==22 and packet[TCP].flags == "S":
                 failed_login_attempts[ip_src] += 1
                 if failed_login_attempts[ip_src] > 5:
                     log_entry = {
@@ -74,20 +73,25 @@ def detect_attack(packet):
                     }
                     write_log(log_entry)
                     print(f"Brute force login attempt detected from {ip_src} to {ip_dst}:{dport}")
+            
+            # Detect DoS Attacks
+        
+            high_traffic_counts[(ip_src, ip_dst, dport)] += 1
+            if high_traffic_counts[(ip_src, ip_dst, dport)] > 100:
+                log_entry = {
+                    'timestamp': time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime()),
+                    'source_ip': ip_src,
+                    'destination_ip': ip_dst,
+                    'protocol': 'TCP' if packet.haslayer(TCP) else 'UDP',
+                    'action': 'Blocked',
+                    'reason': f'Possible DoS attack detected on port {dport}'
+                }
+                write_log(log_entry)
+                print(f"Possible DoS attack detected from {ip_src} to {ip_dst}:{dport}")
 
-        # Detect DoS Attacks
-        high_traffic_counts[(ip_src, ip_dst, dport)] += 1
-        if high_traffic_counts[(ip_src, ip_dst, dport)] > 100:
-            log_entry = {
-                'timestamp': time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime()),
-                'source_ip': ip_src,
-                'destination_ip': ip_dst,
-                'protocol': 'TCP' if packet.haslayer(TCP) else 'UDP',
-                'action': 'Blocked',
-                'reason': f'Possible DoS attack detected on port {dport}'
-            }
-            write_log(log_entry)
-            print(f"Possible DoS attack detected from {ip_src} to {ip_dst}:{dport}")
+                
+
+        
 
 def start_sniffing(interface):
     print(f"Starting sniffing on {interface}")
