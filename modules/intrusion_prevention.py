@@ -75,4 +75,4 @@ def detect_attack(packet):
             print(f"Possible DoS attack detected from {ip_src} to {ip_dst}:{dport}")
 
 # Sniffing on the network interface (e.g., eth0)
-sniff(prn=detect_attack, filter="ip", store=0, iface="eth0")
+sniff(prn=detect_attack, filter="ip", store=0, iface="enp0s3")
