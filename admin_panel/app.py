@@ -276,7 +276,8 @@ def discover_modules():
 
 @app.route('/module/<module_name>')
 def module_page(module_name):
-    return render_template(f'module_{module_name}.html')
+    logs = get_module_logs(module_name)
+    return render_template(f'module_{module_name}.html', logs=logs)
 
 @app.route('/toggle_module/<module_name>', methods=['POST'])
 def toggle_module(module_name):

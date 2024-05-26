@@ -84,13 +84,9 @@ def detect_attack(packet):
             write_log(log_entry)
             print(f"Possible DoS attack detected from {ip_src} to {ip_dst}:{dport}")
 
-def start_sniffing():
-    devices = load_devices()
-    interfaces = [device["iface"] for device in devices]
-
-    for iface in interfaces:
-        print(f"Starting sniffing on {iface}")
-        sniff(prn=detect_attack, filter="ip", store=0, iface=iface)
+def start_sniffing():    
+    print(f"Starting sniffing on enp0s3")
+    sniff(prn=detect_attack, filter="ip", store=0, iface="enp0s3")
 
 def enable_module():
     enabled_event.set()
