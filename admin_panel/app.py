@@ -5,8 +5,6 @@ from flask import Flask, render_template, request, redirect, url_for, jsonify
 import random
 import time
 import importlib.util
-import threading
-from modules.intrusion_prevention import enable_module as eb
 
 app = Flask(__name__)
 
@@ -286,15 +284,17 @@ def toggle_module(module_name):
     spec = importlib.util.spec_from_file_location(module_name, module_path)
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
-    if module_name == 'intrusion_prevention':
-        eb()
-
+    
     enabled = get_module_state(module_name)
 
     if enabled:
+        if module_name == 'intrusion_prevention':
+            os.system('python3 ../modules/intrusion_prevention.py')
         module.disable_module()
         enabled = False
     else:
+        if module_name == 'intrusion_prevention':
+            os.system('pkill -f intrusion_prevention.py')
         module.enable_module()
         enabled = True
 
