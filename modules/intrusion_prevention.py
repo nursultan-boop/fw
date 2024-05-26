@@ -34,15 +34,17 @@ def detect_attack(packet):
     if packet.haslayer(IP):
         ip_src = packet[IP].src
         ip_dst = packet[IP].dst
+        
         if packet.haslayer(TCP):
             dport = packet[TCP].dport
             sport = packet[TCP].sport
+            flags = packet[TCP].flags
         elif packet.haslayer(UDP):
             dport = packet[UDP].dport
             sport = packet[UDP].sport
         
         # Detect Port Scanning
-        if packet.haslayer(TCP) and packet[TCP].flags == "S":
+        if flags & 0x02:  # SYN flag
             log_entry = {
                 'timestamp': time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime()),
                 'source_ip': ip_src,
