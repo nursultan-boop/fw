@@ -34,6 +34,7 @@ def detect_attack(packet):
     if packet.haslayer(IP):
         ip_src = packet[IP].src
         ip_dst = packet[IP].dst
+        tcp_layer = packet[TCP]
         
         if packet.haslayer(TCP):
             dport = packet[TCP].dport
@@ -44,17 +45,17 @@ def detect_attack(packet):
             sport = packet[UDP].sport
         
         # Detect Port Scanning
-        if flags & 0x02:  # SYN flag
+        if tcp_layer.flags & 0x02:
+            print(f"SYN packet detected: {ip_src} -> {ip_dst}:{tcp_layer.dport}")  # Debug print
             log_entry = {
                 'timestamp': time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime()),
                 'source_ip': ip_src,
                 'destination_ip': ip_dst,
                 'protocol': 'TCP',
-                'action': 'Blocked',
-                'reason': f'Port scan detected on port {dport}'
+                'action': 'Detected',
+                'reason': f'SYN packet detected on port {tcp_layer.dport}'
             }
             write_log(log_entry)
-            print(f"Port scan detected from {ip_src} to {ip_dst}:{dport}")
 
         # Detect Brute Force Login Attempts (example for SSH)
         if packet.haslayer(TCP) and dport == 22:
@@ -99,10 +100,10 @@ def disable_module():
     print("Intrusion detection module disabled")
 
 if __name__ == "__main__":
-    enabled_event.clear()
-    sniff_thread = threading.Thread(target=start_sniffing)
-    sniff_thread.daemon = True
+    interface = "enp0s3"  # Update with your interface name
+    enabled_event.set()
+    sniff_thread = threading.Thread(target=start_sniffing, args=(interface,))
     sniff_thread.start()
-    
+
     while True:
         time.sleep(1)
