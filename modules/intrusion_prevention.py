@@ -34,9 +34,10 @@ def detect_attack(packet):
     if packet.haslayer(IP):
         ip_src = packet[IP].src
         ip_dst = packet[IP].dst
-        tcp_layer = packet[TCP]
+        
         
         if packet.haslayer(TCP):
+            tcp_layer = packet[TCP]
             dport = packet[TCP].dport
             sport = packet[TCP].sport
             flags = packet[TCP].flags
