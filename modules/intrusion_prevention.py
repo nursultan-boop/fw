@@ -9,7 +9,6 @@ data_dir = os.path.join(os.path.dirname(__file__), 'data')
 log_file = os.path.join(data_dir, 'intrusion_prevention_log.json')
 devices_file = os.path.join(data_dir, 'devices.json')
 
-# Track IP and port activity
 failed_login_attempts = defaultdict(int)
 high_traffic_counts = defaultdict(int)
 enabled_event = threading.Event()  # Event to control module state
@@ -43,7 +42,7 @@ def detect_attack(packet):
             sport = packet[UDP].sport
         
         # Detect Port Scanning
-        if packet.haslayer(TCP) and packet[TCP].flags == "S":  # SYN flag
+        if packet.haslayer(TCP) and packet[TCP].flags == "S":
             log_entry = {
                 'timestamp': time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime()),
                 'source_ip': ip_src,
@@ -56,10 +55,10 @@ def detect_attack(packet):
             print(f"Port scan detected from {ip_src} to {ip_dst}:{dport}")
 
         # Detect Brute Force Login Attempts (example for SSH)
-        if packet.haslayer(TCP) and dport == 22:  # SSH port
-            if packet[TCP].flags == "S":  # SYN flag (connection attempt)
+        if packet.haslayer(TCP) and dport == 22:
+            if packet[TCP].flags == "S":
                 failed_login_attempts[ip_src] += 1
-                if failed_login_attempts[ip_src] > 5:  # Threshold for brute force detection
+                if failed_login_attempts[ip_src] > 5:
                     log_entry = {
                         'timestamp': time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime()),
                         'source_ip': ip_src,
@@ -73,7 +72,7 @@ def detect_attack(packet):
 
         # Detect DoS Attacks
         high_traffic_counts[(ip_src, ip_dst, dport)] += 1
-        if high_traffic_counts[(ip_src, ip_dst, dport)] > 100:  # Threshold for high traffic detection
+        if high_traffic_counts[(ip_src, ip_dst, dport)] > 100:
             log_entry = {
                 'timestamp': time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime()),
                 'source_ip': ip_src,
@@ -102,11 +101,10 @@ def disable_module():
     print("Intrusion detection module disabled")
 
 if __name__ == "__main__":
-    enabled_event.clear()  # Start with the module disabled
+    enabled_event.clear()
     sniff_thread = threading.Thread(target=start_sniffing)
     sniff_thread.daemon = True
     sniff_thread.start()
     
-    # Run a loop to keep the main thread alive
     while True:
         time.sleep(1)

@@ -1,12 +1,11 @@
 import json
 import os
 import subprocess
-import psutil
 from flask import Flask, render_template, request, redirect, url_for, jsonify
 import random
 import time
 import importlib.util
-
+import threading
 
 app = Flask(__name__)
 
@@ -300,6 +299,17 @@ def toggle_module(module_name):
 
     return jsonify(success=True)
 
+def run_intrusion_detection():
+    global enabled_event
+    enabled_event = threading.Event()
+    enabled_event.clear()  # Start with the module disabled
+    sniff_thread = threading.Thread(target=start_sniffing)
+    sniff_thread.daemon = True
+    sniff_thread.start()
+    
+    while True:
+        time.sleep(1)
+
 #endregion
 
 @app.route('/')
@@ -316,4 +326,7 @@ def index():
     return render_template('index.html', devices=devices, groups=groups, modules=modules)
 
 if __name__ == '__main__':
+
+    intrusion_thread = threading.Thread(target=run_intrusion_detection)
+    intrusion_thread.start()
     app.run(debug=True)
