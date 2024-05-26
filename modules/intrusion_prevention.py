@@ -3,14 +3,16 @@ import json
 import os
 import time
 from collections import defaultdict
+import threading
 
-data_dir = os.path.join(os.path.dirname(__file__), '../data')
+data_dir = os.path.join(os.path.dirname(__file__), 'data')
 log_file = os.path.join(data_dir, 'intrusion_prevention_log.json')
 devices_file = os.path.join(data_dir, 'devices.json')
 
 # Track IP and port activity
 failed_login_attempts = defaultdict(int)
 high_traffic_counts = defaultdict(int)
+enabled_event = threading.Event()  # Event to control module state
 
 def load_devices():
     if os.path.exists(devices_file):
@@ -28,6 +30,8 @@ def write_log(entry):
         json.dump(logs, f)
 
 def detect_attack(packet):
+    if not enabled_event.is_set():
+        return
     if packet.haslayer(IP):
         ip_src = packet[IP].src
         ip_dst = packet[IP].dst
@@ -89,5 +93,20 @@ def start_sniffing():
         print(f"Starting sniffing on {iface}")
         sniff(prn=detect_attack, filter="ip", store=0, iface=iface)
 
+def enable_module():
+    enabled_event.set()
+    print("Intrusion detection module enabled")
+
+def disable_module():
+    enabled_event.clear()
+    print("Intrusion detection module disabled")
+
 if __name__ == "__main__":
-    start_sniffing()
+    enabled_event.clear()  # Start with the module disabled
+    sniff_thread = threading.Thread(target=start_sniffing)
+    sniff_thread.daemon = True
+    sniff_thread.start()
+    
+    # Run a loop to keep the main thread alive
+    while True:
+        time.sleep(1)
