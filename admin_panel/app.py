@@ -6,6 +6,7 @@ import random
 import time
 import importlib.util
 import threading
+from modules.intrusion_prevention import enable_module as eb
 
 app = Flask(__name__)
 
@@ -285,6 +286,8 @@ def toggle_module(module_name):
     spec = importlib.util.spec_from_file_location(module_name, module_path)
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
+    if module_name == 'intrusion_prevention':
+        eb()
 
     enabled = get_module_state(module_name)
 
@@ -300,16 +303,7 @@ def toggle_module(module_name):
 
     return jsonify(success=True)
 
-def run_intrusion_detection():
-    global enabled_event
-    enabled_event = threading.Event()
-    enabled_event.clear()  # Start with the module disabled
-    sniff_thread = threading.Thread(target=start_sniffing)
-    sniff_thread.daemon = True
-    sniff_thread.start()
-    
-    while True:
-        time.sleep(1)
+
 
 #endregion
 
@@ -328,6 +322,4 @@ def index():
 
 if __name__ == '__main__':
 
-    intrusion_thread = threading.Thread(target=run_intrusion_detection)
-    intrusion_thread.start()
     app.run(debug=True)
