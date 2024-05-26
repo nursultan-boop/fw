@@ -93,6 +93,10 @@ def start_sniffing(interface):
 
 def enable_module():
     enabled_event.set()
+    interface = "enp0s3"  # Update with your interface name
+    enabled_event.set()
+    sniff_thread = threading.Thread(target=start_sniffing, args=(interface,))
+    sniff_thread.start()
     print("Intrusion detection module enabled")
 
 def disable_module():
