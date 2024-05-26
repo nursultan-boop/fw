@@ -36,12 +36,7 @@ def detect_attack(packet):
         ip_dst = packet[IP].dst
         
         
-        if packet.haslayer(TCP):
-            
-        elif packet.haslayer(UDP):
-            dport = packet[UDP].dport
-            sport = packet[UDP].sport
-        
+        if packet.haslayer(TCP):       
         # Detect Port Scanning
         if packet.haslayer(TCP):
             tcp_layer = packet[TCP]
