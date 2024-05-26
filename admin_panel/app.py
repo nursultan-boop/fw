@@ -14,6 +14,22 @@ app = Flask(__name__)
 DATA_DIR = os.path.join(os.path.dirname(__file__), '../data')
 GROUPS_FILE = os.path.join(DATA_DIR, 'groups.json')
 
+def get_module_state(module_name):
+    state_file = os.path.join(DATA_DIR, f'{module_name}.json')
+    if os.path.exists(state_file):
+        with open(state_file, 'r') as f:
+            state = json.load(f)
+            return state.get('enabled', False)
+    return False
+
+def get_module_logs(module_name):
+    log_file = os.path.join(DATA_DIR, f'{module_name}_log.json')
+    if os.path.exists(log_file):
+        with open(log_file, 'r') as f:
+            logs = json.load(f)
+            return logs
+    return []
+
 if not os.path.exists(DATA_DIR):
     os.makedirs(DATA_DIR)
 
@@ -81,23 +97,6 @@ def get_device_logs(device_ip):
 #endregion
 
 #region rules
-def apply_rule(rule):
-    chain = iptc.Chain(iptc.Table(iptc.Table.FILTER), "INPUT")
-    rule_parts = rule.split()
-    iptc_rule = iptc.Rule()
-
-    if rule_parts[0] == "block":
-        iptc_rule.target = iptc.Rule.Target(iptc_rule, "DROP")
-        if "ip" in rule_parts[1]:
-            iptc_rule.src = rule_parts[1]
-        elif "domain" in rule_parts[1]:
-            # Domain blocking logic
-            iptc_rule.dst = rule_parts[1]
-        elif "port" in rule_parts[1]:
-            match = iptc.Match(iptc_rule, "tcp")
-            match.dport = rule_parts[2]
-            iptc_rule.add_match(match)
-        chain.insert_rule(iptc_rule)
 
 @app.route('/add_rule/<group_name>', methods=['GET', 'POST'])
 def add_rule(group_name):
@@ -244,6 +243,11 @@ def device_stats(device_ip):
 
 #region modules
 
+@app.route('/module_logs/<module_name>', methods=['GET'])
+def module_logs(module_name):
+    logs = get_module_logs(module_name)
+    return jsonify(logs=logs)
+
 def discover_modules():
     modules_dir = os.path.join(os.path.dirname(__file__), '../modules')
     modules = []
@@ -266,27 +270,24 @@ def module_page(module_name):
 
 @app.route('/toggle_module/<module_name>', methods=['POST'])
 def toggle_module(module_name):
-    try:
-        module_path = os.path.join(os.path.dirname(__file__), '../modules', f'{module_name}.py')
+    module_path = os.path.join(os.path.dirname(__file__), '../modules', f'{module_name}.py')
+    spec = importlib.util.spec_from_file_location(module_name, module_path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
 
-        # Verify the module file exists
-        if not os.path.isfile(module_path):
-            return jsonify(success=False, error=f"Module file not found: {module_path}")
+    enabled = get_module_state(module_name)
 
-        spec = importlib.util.spec_from_file_location(module_name, module_path)
-        module = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(module)
+    if enabled:
+        module.disable_module()
+        enabled = False
+    else:
+        module.enable_module()
+        enabled = True
 
-        if getattr(module, 'enabled', False):
-            module.disable_module()
-            module.enabled = False
-        else:
-            module.enable_module()
-            module.enabled = True
+    with open(os.path.join(DATA_DIR, f'{module_name}.json'), 'w') as f:
+        json.dump({'enabled': enabled}, f)
 
-        return jsonify(success=True)
-    except Exception as e:
-        return jsonify(success=False, error=str(e))
+    return jsonify(success=True)
 
 #endregion
 

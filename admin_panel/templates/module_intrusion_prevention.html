@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Intrusion Prevention Module</title>
+    <script>
+    function toggleModule(module) {
+        if (confirm('Are you sure you want to toggle this module?')) {
+            fetch(`/toggle_module/${module}`, {method: 'POST'})
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert('Module toggled successfully');
+                        const statusElement = document.getElementById('module-status');
+                        const buttonElement = document.getElementById('toggle-button');
+
+                        if (statusElement.innerText === 'Enabled') {
+                            statusElement.innerText = 'Disabled';
+                            buttonElement.innerText = 'Enable';
+                        } else {
+                            statusElement.innerText = 'Enabled';
+                            buttonElement.innerText = 'Disable';
+                        }
+
+                        loadLogs(module);
+                    } else {
+                        alert('Error toggling module');
+                    }
+                });
+        }
+    }
+
+    function loadLogs(module) {
+        fetch(`/module_logs/${module}`, {method: 'GET'})
+            .then(response => response.json())
+            .then(data => {
+                const logList = document.getElementById('log-list');
+                logList.innerHTML = '';
+                data.logs.forEach(log => {
+                    const listItem = document.createElement('li');
+                    listItem.textContent = `${log.timestamp} - ${log.action}: ${log.details}`;
+                    logList.appendChild(listItem);
+                });
+            });
+    }
+
+    document.addEventListener('DOMContentLoaded', (event) => {
+        const module = '{{ module_name }}';
+        loadLogs(module);
+    });
+    </script>
+</head>
+<body>
+    <h1>Intrusion Prevention Module</h1>
+    <a href="{{ url_for('index') }}">Back to Home</a>
+    <div>
+        <p>Status: <span id="module-status">{{ 'Enabled' if module_enabled else 'Disabled' }}</span></p>
+        <button id="toggle-button" onclick="toggleModule('{{ module_name }}')">
+            {{ 'Disable' if module_enabled else 'Enable' }}
+        </button>
+    </div>
+    <h2>Logs</h2>
+    <ul id="log-list">
+        {% for log in logs %}
+        <li>{{ log.timestamp }} - {{ log.action }}: {{ log.details }}</li>
+        {% endfor %}
+    </ul>
+</body>
+</html>
