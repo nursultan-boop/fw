@@ -34,15 +34,14 @@ def detect_attack(packet):
     if packet.haslayer(IP):
         ip_src = packet[IP].src
         ip_dst = packet[IP].dst
+         
         
-        
-        if packet.haslayer(TCP):       
-        # Detect Port Scanning
         if packet.haslayer(TCP):
             tcp_layer = packet[TCP]
             dport = packet[TCP].dport
             sport = packet[TCP].sport
             flags = packet[TCP].flags
+            # Detect Port Scanning
             if tcp_layer.flags & 0x02:
                 print(f"SYN packet detected: {ip_src} -> {ip_dst}:{tcp_layer.dport}")  # Debug print
                 log_entry = {
