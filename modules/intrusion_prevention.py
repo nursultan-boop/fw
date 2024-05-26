@@ -92,6 +92,8 @@ def start_sniffing(interface):
     sniff(prn=detect_attack, store=0, iface=interface)
 
 def enable_module():
+    global enabled
+    enabled = True
     enabled_event.set()
     interface = "enp0s3"  # Update with your interface name
     enabled_event.set()
@@ -100,6 +102,8 @@ def enable_module():
     print("Intrusion detection module enabled")
 
 def disable_module():
+    global enabled
+    enabled = False
     enabled_event.clear()
     print("Intrusion detection module disabled")
 
