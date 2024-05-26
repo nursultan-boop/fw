@@ -5,7 +5,7 @@ import time
 from collections import defaultdict
 import threading
 
-data_dir = os.path.join(os.path.dirname(__file__), 'data')
+data_dir = os.path.join(os.path.dirname(__file__), '../data')
 log_file = os.path.join(data_dir, 'intrusion_prevention_log.json')
 devices_file = os.path.join(data_dir, 'devices.json')
 
