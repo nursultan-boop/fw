@@ -89,7 +89,7 @@ def detect_attack(packet):
 
 def start_sniffing():    
     print(f"Starting sniffing on enp0s3")
-    sniff(prn=detect_attack, filter="ip", store=0, iface="enp0s3")
+    sniff(prn=detect_attack, store=0, iface="enp0s3")
 
 def enable_module():
     enabled_event.set()
