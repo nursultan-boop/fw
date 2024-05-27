@@ -2,9 +2,11 @@ import json
 import os
 import subprocess
 from flask import Flask, render_template, request, redirect, url_for, jsonify
-import random
-import time
 import importlib.util
+from scapy.all import sniff
+from threading import Thread
+from collections import defaultdict
+import random
 
 app = Flask(__name__)
 
@@ -91,14 +93,20 @@ def scan_devices_and_update():
     save_data(groups)
     return devices
 
-def get_network_stats(device_ip):
-    stats = {
-        "bytes_sent": random.randint(1000, 10000),
-        "bytes_recv": random.randint(1000, 10000),
-        "packets_sent": random.randint(10, 100),
-        "packets_recv": random.randint(10, 100)
-    }
-    return stats
+def packet_callback(packet):
+    if packet.haslayer('IP'):
+        ip_src = packet['IP'].src
+        ip_dst = packet['IP'].dst
+
+        if ip_src in device_stats:
+            device_stats[ip_src]["bytes_sent"] += len(packet)
+            device_stats[ip_src]["packets_sent"] += 1
+        if ip_dst in device_stats:
+            device_stats[ip_dst]["bytes_recv"] += len(packet)
+            device_stats[ip_dst]["packets_recv"] += 1
+
+def start_sniffer():
+    sniff(prn=packet_callback, store=0)
 
 def get_device_logs(device_ip):
     # For demonstration purposes, we return a static log. Replace with actual log retrieval logic.
@@ -245,7 +253,7 @@ def remove_device(group_name, device_ip):
 
 @app.route('/device_stats/<device_ip>')
 def device_stats(device_ip):
-    stats = get_network_stats(device_ip)
+    stats = device_stats[device_ip]
     return jsonify(stats)
 
 #endregion
@@ -327,5 +335,7 @@ def index():
     return render_template('index.html', devices=devices, groups=groups, modules=modules)
 
 if __name__ == '__main__':
-
+    sniffer_thread = Thread(target=start_sniffer)
+    sniffer_thread.daemon = True
+    sniffer_thread.start()
     app.run(debug=True)
