@@ -255,7 +255,7 @@ def device_stats(device_ip):
 @app.route('/module_logs/<module_name>', methods=['GET'])
 def module_logs(module_name):
     logs = get_module_logs(module_name)
-    return jsonify(logs=logs)
+    return jsonify(logs=sorted(logs, key=lambda k: k['timestamp'], reverse=True))
 
 def discover_modules():
     modules_dir = os.path.join(os.path.dirname(__file__), '../modules')

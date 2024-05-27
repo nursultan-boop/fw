@@ -19,7 +19,7 @@
             <td>{{ log.source_ip }}</td>
             <td>{{ log.destination_ip }}</td>
             <td>{{ log.protocol }}</td>
-            <td>{{ log.action }}</td>
+            <td style="color: {{ 'red' if log.action == 'Blocked' else 'orange' if log.action == 'Detected' else 'black' }}">{{ log.action }}</td>
             <td>{{ log.reason }}</td>
         </tr>
         {% endfor %}

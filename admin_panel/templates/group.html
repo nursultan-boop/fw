@@ -2,9 +2,6 @@
 
 {% block content %}
 <h2>Group: {{ group_name }}</h2>
-<form action="{{ url_for('remove_group', group_name=group_name}}" method="post" style="display:inline;">
-    <button type="submit">Remove group</button>
-</form>
 <h3>Devices</h3>
 <table>
     <tr>

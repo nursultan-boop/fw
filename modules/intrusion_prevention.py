@@ -4,6 +4,7 @@ import os
 import time
 from collections import defaultdict
 import threading
+import subprocess
 
 data_dir = os.path.join(os.path.dirname(__file__), '../data')
 log_file = os.path.join(data_dir, 'intrusion_prevention_log.json')
@@ -12,6 +13,12 @@ devices_file = os.path.join(data_dir, 'devices.json')
 failed_login_attempts = defaultdict(int)
 high_traffic_counts = defaultdict(int)
 enabled_event = threading.Event()  # Event to control module state
+
+def block_ip(ip):
+    command = f"sudo iptables -A INPUT -s {ip} -j DROP"
+    subprocess.run(command, shell=True)
+    command = f"sudo iptables -A OUTPUT -d {ip} -j DROP"
+    subprocess.run(command, shell=True)
 
 def load_devices():
     if os.path.exists(devices_file):
@@ -39,11 +46,9 @@ def detect_attack(packet):
         if packet.haslayer(TCP):
             tcp_layer = packet[TCP]
             dport = packet[TCP].dport
-            sport = packet[TCP].sport
-            flags = packet[TCP].flags
             # Detect Port Scanning
             if tcp_layer.flags & 0x02:
-                print(f"SYN packet detected: {ip_src} -> {ip_dst}:{tcp_layer.dport}")  # Debug print
+                
                 log_entry = {
                     'timestamp': time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime()),
                     'source_ip': ip_src,
@@ -53,10 +58,12 @@ def detect_attack(packet):
                     'reason': f'SYN packet detected on port {tcp_layer.dport}'
                 }
                 write_log(log_entry)
+                print(f"SYN packet detected: {ip_src} -> {ip_dst}:{tcp_layer.dport}")
             # Detect Brute Force Login Attempts (example for SSH)
             if dport ==22 and packet[TCP].flags == "S":
                 failed_login_attempts[ip_src] += 1
                 if failed_login_attempts[ip_src] > 5:
+                    block_ip(ip_src)
                     log_entry = {
                         'timestamp': time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime()),
                         'source_ip': ip_src,
@@ -72,6 +79,7 @@ def detect_attack(packet):
         
             high_traffic_counts[(ip_src, ip_dst, dport)] += 1
             if high_traffic_counts[(ip_src, ip_dst, dport)] > 100:
+                block_ip(ip_src)
                 log_entry = {
                     'timestamp': time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime()),
                     'source_ip': ip_src,
