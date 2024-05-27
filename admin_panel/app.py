@@ -98,7 +98,7 @@ def packet_callback(packet):
     if packet.haslayer('IP'):
         ip_src = packet['IP'].src
         ip_dst = packet['IP'].dst
-
+        print(f"Packet: {ip_src} -> {ip_dst}")
         if ip_src in device_stats:
             device_stats[ip_src]["bytes_sent"] += len(packet)
             device_stats[ip_src]["packets_sent"] += 1
@@ -107,6 +107,7 @@ def packet_callback(packet):
             device_stats[ip_dst]["packets_recv"] += 1
 
 def start_sniffer():
+    print("Starting sniffer")
     sniff(prn=packet_callback, store=0)
 
 def get_device_logs(device_ip):
