@@ -26,6 +26,18 @@
     {% endif %}
     {% endfor %}
 </table>
+
+<h3>Add Device to Group:</h3>
+<form method="post">
+    <label for="device_ip">Device IP:</label>
+    <select name="device_ip" id="device_ip">
+        {% for device in devices %}
+        <option value="{{ device.ip }}">{{ device.name }} ({{ device.ip }})</option>
+        {% endfor %}
+    </select>
+    <button type="submit">Add Device</button>
+</form>
+
 <h3>Rules</h3>
 <ul>
     {% for rule in group.rules %}
