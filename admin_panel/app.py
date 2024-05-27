@@ -13,6 +13,7 @@ app = Flask(__name__)
 #region Load data
 DATA_DIR = os.path.join(os.path.dirname(__file__), '../data')
 GROUPS_FILE = os.path.join(DATA_DIR, 'groups.json')
+device_stats = defaultdict(lambda: {"bytes_sent": 0, "bytes_recv": 0, "packets_sent": 0, "packets_recv": 0})
 
 def get_module_state(module_name):
     state_file = os.path.join(DATA_DIR, f'{module_name}.json')
@@ -252,7 +253,7 @@ def remove_device(group_name, device_ip):
     return redirect(url_for('group_page', group_name=group_name))
 
 @app.route('/device_stats/<device_ip>')
-def device_stats(device_ip):
+def device_stats_route(device_ip):
     stats = device_stats[device_ip]
     return jsonify(stats)
 
