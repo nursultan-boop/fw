@@ -118,7 +118,7 @@ sniffer_thread = None
 def start_sniffer(interface):
     try:
         print("Starting sniffer on interface", interface)
-        sniff(prn=packet_callback, store=0, iface = interface)
+        sniff(prn=packet_callback, store=0)
         time.sleep(1)
         sniffer_thread.join()
     except Exception as e:
@@ -270,9 +270,6 @@ def device_stats_route(device_ip):
         devices = scan_devices()
         interface = next((device['name'] for device in devices if device['ip'] == device_ip), 'Unknown')
         print("Starting application")
-        global sniffer_thread
-        if sniffer_thread: 
-            sniffer_thread.join()
         sniffer_thread = Thread(target=start_sniffer, args=(interface,))
         sniffer_thread.daemon = True
         sniffer_thread.start()
