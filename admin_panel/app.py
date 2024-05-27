@@ -98,13 +98,15 @@ def packet_callback(packet):
     if packet.haslayer('IP'):
         ip_src = packet['IP'].src
         ip_dst = packet['IP'].dst
-        print(f"Packet: {ip_src} -> {ip_dst}")
+        log_entry = f"Packet: {ip_src} -> {ip_dst}"
         if ip_src in device_stats:
             device_stats[ip_src]["bytes_sent"] += len(packet)
             device_stats[ip_src]["packets_sent"] += 1
+            device_stats[ip_src]["logs"].append(log_entry)
         if ip_dst in device_stats:
             device_stats[ip_dst]["bytes_recv"] += len(packet)
             device_stats[ip_dst]["packets_recv"] += 1
+            device_stats[ip_dst]["logs"].append(log_entry)
 
 def start_sniffer():
     try:
@@ -113,9 +115,6 @@ def start_sniffer():
     except Exception as e:
         print(f"Error starting sniffer: {e}")
 
-def get_device_logs(device_ip):
-    # For demonstration purposes, we return a static log. Replace with actual log retrieval logic.
-    return f"Logs for device with IP {device_ip}"
 #endregion
 
 #region rules

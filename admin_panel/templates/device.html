@@ -14,7 +14,7 @@
 
 <div id="logs">
     <h3>Logs</h3>
-    <pre>{{ logs }}</pre>
+    <pre id="log_content"></pre>
 </div>
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script>
@@ -27,10 +27,11 @@ function updateStats() {
                 document.getElementById('bytes_recv').innerText = data.bytes_recv;
                 document.getElementById('packets_sent').innerText = data.packets_sent;
                 document.getElementById('packets_recv').innerText = data.packets_recv;
-}});
+                document.getElementById('log_content').innerText = data.logs.join('\n');
+            }});
 }
 
-setInterval(updateStats, 2000);
+setInterval(updateStats, 1000);
 updateStats();
 </script>
 
