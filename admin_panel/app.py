@@ -258,6 +258,14 @@ def remove_device(group_name, device_ip):
 
 @app.route('/device_stats/<device_ip>')
 def device_stats_route(device_ip):
+    try:
+        print("Starting application")
+        sniffer_thread = Thread(target=start_sniffer)
+        sniffer_thread.daemon = True
+        sniffer_thread.start()
+        print("Sniffer thread started")
+    except Exception as e:
+        print(f"Error starting sniffer thread: {e}")
     stats = device_stats[device_ip]
     return jsonify(stats)
 
@@ -340,12 +348,5 @@ def index():
     return render_template('index.html', devices=devices, groups=groups, modules=modules)
 
 if __name__ == '__main__':
-    try:
-        print("Starting application")
-        sniffer_thread = Thread(target=start_sniffer)
-        sniffer_thread.daemon = True
-        sniffer_thread.start()
-        print("Sniffer thread started")
-    except Exception as e:
-        print(f"Error starting sniffer thread: {e}")
+    
     app.run(debug=True)
