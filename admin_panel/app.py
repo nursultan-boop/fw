@@ -75,7 +75,11 @@ def scan_devices():
                 current_device = line.split(':')[0] 
             elif line.startswith('inet4'): 
                 ip_address = line.split(' ')[1]
-                ip = ip_address.split('/')[0]
+                if(current_device != 'enp0s3'):
+                    ip = ip_address.split('/')[0]+'0'
+                else:
+                    ip = ip_address.split('/')[0]
+                
                 if current_device:  
                     devices.append({"name": current_device, "ip": ip})
 
