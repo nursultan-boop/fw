@@ -231,7 +231,7 @@ def remove_group(group_name):
 def monitor_device(device_ip):
     devices = scan_devices()
     device_name = next((device['name'] for device in devices if device['ip'] == device_ip), 'Unknown')
-    return render_template('device.html', device_name=device_name, device_ip=device_ip)
+    return render_template('device.html', device_name=device_name, device_ip=device_ip, logs=[])
 
 @app.route('/add_device/<group_name>', methods=['POST'])
 def add_device(group_name):
@@ -262,7 +262,6 @@ def device_stats_route(device_ip):
         sniffer_thread = Thread(target=start_sniffer)
         sniffer_thread.daemon = True
         sniffer_thread.start()
-        print("Sniffer thread started")
     except Exception as e:
         print(f"Error starting sniffer thread: {e}")
     stats = device_stats[device_ip]
