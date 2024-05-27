@@ -16,17 +16,18 @@
     <h3>Logs</h3>
     <pre>{{ logs }}</pre>
 </div>
-
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script>
 function updateStats() {
-    fetch(`/device_stats/{{ device_ip }}`)
-    .then(response => response.json())
-    .then(data => {
-        document.getElementById('bytes_sent').innerText = data.bytes_sent;
-        document.getElementById('bytes_recv').innerText = data.bytes_recv;
-        document.getElementById('packets_sent').innerText = data.packets_sent;
-        document.getElementById('packets_recv').innerText = data.packets_recv;
-    });
+    $.ajax({
+            url: '/device_stats/{{ device_ip }}',
+            method: 'GET',
+            success: function(data) {
+                document.getElementById('bytes_sent').innerText = data.bytes_sent;
+                document.getElementById('bytes_recv').innerText = data.bytes_recv;
+                document.getElementById('packets_sent').innerText = data.packets_sent;
+                document.getElementById('packets_recv').innerText = data.packets_recv;
+}});
 }
 
 setInterval(updateStats, 2000);
