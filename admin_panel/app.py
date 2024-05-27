@@ -271,6 +271,7 @@ def device_stats_route(device_ip):
         interface = next((device['name'] for device in devices if device['ip'] == device_ip), 'Unknown')
         print("Starting application")
         if not sniffer_thread or not sniffer_thread.is_alive():
+            global sniffer_thread
             sniffer_thread = Thread(target=start_sniffer, args=(interface,))
             sniffer_thread.daemon = True
             sniffer_thread.start()
