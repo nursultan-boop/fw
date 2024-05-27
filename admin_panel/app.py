@@ -100,7 +100,8 @@ def packet_callback(packet):
     if packet.haslayer('IP'):
         ip_src = packet['IP'].src
         ip_dst = packet['IP'].dst
-        log_entry = f"Packet: {ip_src} -> {ip_dst}"
+        log_entry = packet.summary()
+        print(log_entry)
         if ip_src not in device_stats:
             device_stats[ip_src] = {"bytes_sent": 0, "bytes_recv": 0, "packets_sent": 0, "packets_recv": 0, "logs": []}
         if ip_dst not in device_stats:
