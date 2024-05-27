@@ -270,18 +270,11 @@ def device_stats_route(device_ip):
         devices = scan_devices()
         interface = next((device['name'] for device in devices if device['ip'] == device_ip), 'Unknown')
         print("Starting application")
-        global sniffer_thread
-        if not sniffer_thread:            
-            sniffer_thread = Thread(target=start_sniffer, args=(interface,))
-            sniffer_thread.daemon = True
-            sniffer_thread.start()
-            print("Sniffer thread started")
-        else:
-            sniffer_thread.join()
-            sniffer_thread = Thread(target=start_sniffer, args=(interface,))
-            sniffer_thread.daemon = True
-            sniffer_thread.start()
-            print("Sniffer thread started")
+        sniffer_thread.join()
+        sniffer_thread = Thread(target=start_sniffer, args=(interface,))
+        sniffer_thread.daemon = True
+        sniffer_thread.start()
+        print("Sniffer thread started")
     except Exception as e:
         print(f"Error starting sniffer thread: {e}")
     stats = device_stats.get(device_ip, {
