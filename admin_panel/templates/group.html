@@ -28,7 +28,7 @@
 </table>
 
 <h3>Add Device to Group:</h3>
-<form method="post">
+<form method="post" action="{{ url_for('add_device', group_name=group_name) }}">
     <label for="device_ip">Device IP:</label>
     <select name="device_ip" id="device_ip">
         {% for device in devices %}
