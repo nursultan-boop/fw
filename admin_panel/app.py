@@ -107,8 +107,11 @@ def packet_callback(packet):
             device_stats[ip_dst]["packets_recv"] += 1
 
 def start_sniffer():
-    print("Starting sniffer")
-    sniff(prn=packet_callback, store=0)
+    try:
+        print("Starting sniffer")
+        sniff(prn=packet_callback, store=0)
+    except Exception as e:
+        print(f"Error starting sniffer: {e}")
 
 def get_device_logs(device_ip):
     # For demonstration purposes, we return a static log. Replace with actual log retrieval logic.
@@ -337,7 +340,12 @@ def index():
     return render_template('index.html', devices=devices, groups=groups, modules=modules)
 
 if __name__ == '__main__':
-    sniffer_thread = Thread(target=start_sniffer)
-    sniffer_thread.daemon = True
-    sniffer_thread.start()
+    try:
+        print("Starting application")
+        sniffer_thread = Thread(target=start_sniffer)
+        sniffer_thread.daemon = True
+        sniffer_thread.start()
+        print("Sniffer thread started")
+    except Exception as e:
+        print(f"Error starting sniffer thread: {e}")
     app.run(debug=True)
