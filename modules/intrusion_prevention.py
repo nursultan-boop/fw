@@ -32,6 +32,7 @@ def write_log(entry):
         with open(log_file, 'r') as f:
             logs = json.load(f)
     logs.append(entry)
+    logs = sorted(logs, key=lambda log: log['timestamp'], reverse=True)
     with open(log_file, 'w') as f:
         json.dump(logs, f)
 

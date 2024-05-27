@@ -255,7 +255,7 @@ def device_stats(device_ip):
 @app.route('/module_logs/<module_name>', methods=['GET'])
 def module_logs(module_name):
     logs = get_module_logs(module_name)
-    return jsonify(logs=sorted(logs, key=lambda k: k['timestamp'], reverse=True))
+    return jsonify(logs=logs)
 
 def discover_modules():
     modules_dir = os.path.join(os.path.dirname(__file__), '../modules')
@@ -274,6 +274,12 @@ def discover_modules():
                 'enabled': enabled
             })
     return modules
+
+@app.route('/get_latest_logs')
+def get_latest_logs():
+    logs = get_module_logs('intrusion_prevention')
+    logs = sorted(logs, key=lambda log: log['timestamp'], reverse=True)
+    return jsonify(logs)
 
 @app.route('/module/<module_name>')
 def module_page(module_name):
