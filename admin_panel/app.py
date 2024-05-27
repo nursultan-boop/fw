@@ -13,7 +13,7 @@ app = Flask(__name__)
 #region Load data
 DATA_DIR = os.path.join(os.path.dirname(__file__), '../data')
 GROUPS_FILE = os.path.join(DATA_DIR, 'groups.json')
-device_stats = defaultdict(lambda: {"bytes_sent": 0, "bytes_recv": 0, "packets_sent": 0, "packets_recv": 0})
+device_stats = {}
 
 def get_module_state(module_name):
     state_file = os.path.join(DATA_DIR, f'{module_name}.json')
@@ -99,14 +99,19 @@ def packet_callback(packet):
         ip_src = packet['IP'].src
         ip_dst = packet['IP'].dst
         log_entry = f"Packet: {ip_src} -> {ip_dst}"
-        if ip_src in device_stats:
-            device_stats[ip_src]["bytes_sent"] += len(packet)
-            device_stats[ip_src]["packets_sent"] += 1
-            device_stats[ip_src]["logs"].append(log_entry)
-        if ip_dst in device_stats:
-            device_stats[ip_dst]["bytes_recv"] += len(packet)
-            device_stats[ip_dst]["packets_recv"] += 1
-            device_stats[ip_dst]["logs"].append(log_entry)
+        print(log_entry)
+        if ip_src not in device_stats:
+            device_stats[ip_src] = {"bytes_sent": 0, "bytes_recv": 0, "packets_sent": 0, "packets_recv": 0, "logs": []}
+        if ip_dst not in device_stats:
+            device_stats[ip_dst] = {"bytes_sent": 0, "bytes_recv": 0, "packets_sent": 0, "packets_recv": 0, "logs": []}
+
+        device_stats[ip_src]["bytes_sent"] += len(packet)
+        device_stats[ip_src]["packets_sent"] += 1
+        device_stats[ip_src]["logs"].append(log_entry)
+
+        device_stats[ip_dst]["bytes_recv"] += len(packet)
+        device_stats[ip_dst]["packets_recv"] += 1
+        device_stats[ip_dst]["logs"].append(log_entry)
 
 def start_sniffer():
     try:
@@ -262,9 +267,16 @@ def device_stats_route(device_ip):
         sniffer_thread = Thread(target=start_sniffer)
         sniffer_thread.daemon = True
         sniffer_thread.start()
+        print("Sniffer thread started")
     except Exception as e:
         print(f"Error starting sniffer thread: {e}")
-    stats = device_stats[device_ip]
+    stats = device_stats.get(device_ip, {
+        "bytes_sent": 0,
+        "bytes_recv": 0,
+        "packets_sent": 0,
+        "packets_recv": 0,
+        "logs": []
+    })
     return jsonify(stats)
 
 #endregion
