@@ -118,7 +118,7 @@ sniffer_thread = None
 def start_sniffer(interface):
     try:
         print("Starting sniffer on interface", interface)
-        sniff(prn=packet_callback, store=0)
+        sniff(prn=packet_callback, store=0, iface = interface)
         time.sleep(1)
         sniffer_thread.join()
     except Exception as e:
