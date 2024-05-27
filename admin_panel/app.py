@@ -7,6 +7,7 @@ from scapy.all import sniff
 from threading import Thread
 from collections import defaultdict
 import random
+import ctypes
 
 app = Flask(__name__)
 
@@ -120,6 +121,7 @@ def start_sniffer():
     try:
         print("Starting sniffer")
         sniff(prn=packet_callback, store=0)
+    
     except Exception as e:
         print(f"Error starting sniffer: {e}")
 
@@ -280,7 +282,7 @@ def device_stats_route(device_ip):
         "packets_recv": 0,
         "logs": []
     })
-    sniffer_thread.stop()
+    sniffer_thread.join()
     return jsonify(stats)
 
 #endregion
