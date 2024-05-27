@@ -280,6 +280,7 @@ def device_stats_route(device_ip):
         "packets_recv": 0,
         "logs": []
     })
+    sniffer_thread.stop()
     return jsonify(stats)
 
 #endregion
