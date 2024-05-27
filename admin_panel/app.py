@@ -76,10 +76,7 @@ def scan_devices():
                 current_device = line.split(':')[0] 
             elif line.startswith('inet4'): 
                 ip_address = line.split(' ')[1]
-                if(current_device != 'enp0s3'):
-                    ip = ip_address.split('/')[0]+'0'
-                else:
-                    ip = ip_address.split('/')[0]
+                ip = ip_address.split('/')[0]
                 
                 if current_device:  
                     devices.append({"name": current_device, "ip": ip})
@@ -117,10 +114,10 @@ def packet_callback(packet):
         device_stats[ip_dst]["packets_recv"] += 1
         device_stats[ip_dst]["logs"].append(log_entry)
 sniffer_thread = None
-def start_sniffer():
+def start_sniffer(interface):
     try:
         print("Starting sniffer")
-        sniff(prn=packet_callback, store=0)
+        sniff(prn=packet_callback, store=0, iface = interface)
         time.sleep(1)
         sniffer_thread.join()
     except Exception as e:
@@ -269,8 +266,10 @@ def remove_device(group_name, device_ip):
 @app.route('/device_stats/<device_ip>')
 def device_stats_route(device_ip):
     try:
+        devices = scan_devices()
+        interface = next((device['name'] for device in devices if device['ip'] == device_ip), 'Unknown')
         print("Starting application")
-        sniffer_thread = Thread(target=start_sniffer)
+        sniffer_thread = Thread(target=start_sniffer, args=(interface,))
         sniffer_thread.daemon = True
         sniffer_thread.start()
         print("Sniffer thread started")
